@@ -34,6 +34,7 @@ const validIntent = {
   taskId: 'character-remaster-001',
   goal: 'character_remaster',
   intentText: ['Preserve identity', 'Cleaner line work', 'Low-saturation wuxia direction'],
+  negativePrompt: 'homogenized face, identity drift, distorted anatomy, artifacts',
   constraints: {
     candidateCount: 2,
     humanReviewRequired: true,
@@ -93,6 +94,7 @@ test('builds a provider-neutral generation variation request with a distinct can
   assert.equal(request.operationId, 'character-remaster-001:candidate:2');
   assert.equal(request.operatorId, 'visual.op.generative.generate_variation');
   assert.equal(request.seed, 42);
+  assert.equal(request.negativePrompt, validIntent.negativePrompt);
   assert.equal(request.outputPath, outputPath);
   assert.equal(request.source.sha256, sha256('source-bytes'));
   assert.deepEqual(

@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { spawnSync } from 'node:child_process';
 import { PythonCharacterRemasterEvaluator } from '../../src/character-remaster/python-evaluator.js';
 
 const passingEvidence = {
@@ -72,4 +73,24 @@ test('derives the final verdict from independent evaluator evidence', async () =
   });
   assert.equal(result.verdict, 'ACCEPT');
   assert.deepEqual(result.scores, passingEvidence.scores);
+});
+
+test('normalizes tensor and pooled model image-feature outputs', () => {
+  const code = [
+    'from types import SimpleNamespace',
+    'import torch',
+    'from providers.python.image_feature_output import normalized_image_features',
+    'raw = torch.tensor([[3.0, 4.0], [5.0, 12.0]])',
+    'direct = normalized_image_features(raw)',
+    'pooled = normalized_image_features(SimpleNamespace(pooler_output=raw))',
+    'assert torch.allclose(direct.norm(dim=-1), torch.ones(2))',
+    'assert torch.allclose(pooled, direct)',
+    "print('normalized')",
+  ].join('; ');
+  const result = spawnSync('python3', ['-c', code], {
+    cwd: process.cwd(),
+    encoding: 'utf8',
+  });
+  assert.equal(result.status, 0, result.stderr || result.stdout);
+  assert.equal(result.stdout.trim(), 'normalized');
 });

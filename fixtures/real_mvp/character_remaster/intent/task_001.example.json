@@ -29,5 +29,6 @@
     "Use cleaner line work",
     "Keep a low-saturation wuxia direction",
     "Avoid homogenized AI-face features"
-  ]
+  ],
+  "negativePrompt": "homogenized face, identity drift, distorted anatomy, malformed hands, duplicate features, artifacts"
 }

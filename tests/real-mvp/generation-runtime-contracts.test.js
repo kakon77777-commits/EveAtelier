@@ -73,6 +73,42 @@ test('compiles provider bindings into a cloned ComfyUI workflow', () => {
   assert.deepEqual(workflow, original);
 });
 
+test('tracked SD1.5 image-to-image workflow compiles into core ComfyUI nodes', async () => {
+  const trackedWorkflow = JSON.parse(await readFile(
+    'fixtures/real_mvp/character_remaster/provider/comfyui-sd15-img2img-api.json',
+    'utf8',
+  ));
+  const compiled = compileComfyWorkflow({
+    workflow: trackedWorkflow,
+    bindings: {
+      sourceImage: { nodeId: '2', input: 'image' },
+      positivePrompt: { nodeId: '3', input: 'text' },
+      negativePrompt: { nodeId: '4', input: 'text' },
+      seed: { nodeId: '6', input: 'seed' },
+      filenamePrefix: { nodeId: '8', input: 'filename_prefix' },
+    },
+    request: {
+      sourceImageName: 'eve/source.png',
+      intentText: ['preserve identity', 'low-saturation wuxia'],
+      negativePrompt: 'homogenized face',
+      seed: 41001,
+      filenamePrefix: 'eve/character-remaster-001',
+    },
+  });
+
+  assert.equal(compiled['1'].class_type, 'CheckpointLoaderSimple');
+  assert.equal(compiled['1'].inputs.ckpt_name, 'v1-5-pruned-emaonly.safetensors');
+  assert.equal(compiled['2'].class_type, 'LoadImage');
+  assert.equal(compiled['2'].inputs.image, 'eve/source.png');
+  assert.deepEqual(compiled['5'].inputs.pixels, ['2', 0]);
+  assert.deepEqual(compiled['6'].inputs.latent_image, ['5', 0]);
+  assert.equal(compiled['6'].inputs.denoise, 0.38);
+  assert.equal(compiled['6'].inputs.seed, 41001);
+  assert.deepEqual(compiled['7'].inputs.samples, ['6', 0]);
+  assert.equal(compiled['8'].class_type, 'SaveImage');
+  assert.equal(compiled['8'].inputs.filename_prefix, 'eve/character-remaster-001');
+});
+
 test('ComfyUI real variation retrieves the configured output artifact exactly once', async () => {
   const directory = await mkdtemp(join(tmpdir(), 'eve-comfy-runtime-'));
   const sourcePath = join(directory, 'source.png');

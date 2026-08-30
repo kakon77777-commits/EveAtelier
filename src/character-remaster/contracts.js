@@ -48,6 +48,10 @@ export function validateCharacterRemasterIntent(value) {
       || value.intentText.some(line => typeof line !== 'string' || line.trim().length === 0)) {
     return { ok: false, reason: 'intent_text_required' };
   }
+  if (value.negativePrompt !== undefined
+      && (typeof value.negativePrompt !== 'string' || value.negativePrompt.trim().length === 0)) {
+    return { ok: false, reason: 'negative_prompt_invalid' };
+  }
   if (!value.constraints || typeof value.constraints !== 'object' || Array.isArray(value.constraints)) {
     return { ok: false, reason: 'constraints_required' };
   }
@@ -109,6 +113,7 @@ export function buildGenerationRequest({ intent, assets, candidateIndex, outputP
     source: structuredClone(assets.source),
     references: structuredClone(assets.references),
     intentText: [...intent.intentText],
+    negativePrompt: intent.negativePrompt ?? '',
     constraints: structuredClone(intent.constraints),
     seed: (intent.constraints.baseSeed ?? 0) + candidateIndex,
     outputPath,

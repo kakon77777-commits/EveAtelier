@@ -10,7 +10,7 @@ Canonical baseline: `main@2aad5e79d8442197a15c8cd5c0d95b4149e878a1`
 
 **PARTIAL**
 
-The Real MVP architecture and executable boundaries are implemented and independently regressed. A real Character Remaster task has not yet run because no rights-clear source/reference pack or approved generation/evaluator model runtime is present. No human review or real candidate promotion has occurred.
+The Real MVP architecture and executable boundaries are implemented and independently regressed. The approved external generation runtime, generation model, and evaluator model are installed and have passed real provider/evaluator smoke tests. A real Character Remaster task has not yet run because the rights-clear source/reference pack is absent and thresholds have not been calibrated on that pack. No human review or real candidate promotion has occurred.
 
 The PASS definition has not been lowered.
 
@@ -116,8 +116,8 @@ Fresh EveAtelier verification after implementation:
 - `npm run check`: PASS
 - JavaScript files checked: 20
 - Python provider compilation: PASS
-- Node tests discovered: 50
-- tests passed: 49
+- Node tests discovered: 52
+- tests passed: 51
 - tests failed: 0
 - tests skipped: 1
 - skipped test: explicit opt-in live MRMIC test during ordinary offline regression
@@ -133,15 +133,21 @@ The suite covers:
 - Workbench persistence and artifact-drift rejection;
 - candidate batching and source preservation;
 - ComfyUI upload/queue/history/retrieval;
+- tracked vanilla SD1.5 image-to-image workflow compilation;
 - Diffusers explicit-model/local-only behavior;
+- tensor and pooled image-feature output normalization;
 - evidence classification and sanitization;
 - MRMIC create/patch/readback and stale-pre-dispatch rejection.
 
 Automated fixtures, HTTP doubles, and simulated review records are contract evidence only.
 
-## Runtime readiness probe
+## Runtime readiness and real provider/evaluator smoke
 
-Evidence file: `artifacts/runtime/real-mvp/runtime-probe.json` (gitignored)
+External runtime root: `D:\Ai\work together\EveAtelier-runtime`
+
+Runtime manifest: `D:\Ai\work together\EveAtelier-runtime\manifests\RUNTIME_MANIFEST.json`
+
+Machine-local run config: `D:\Ai\work together\EveAtelier-runtime\configs\real-mvp-comfyui.json`
 
 Observed:
 
@@ -150,22 +156,58 @@ Observed:
 - GPU: NVIDIA GeForce RTX 3070
 - VRAM: 8192 MiB
 - NVIDIA driver: `610.62`
-- free storage on D: approximately 254.9 GiB
-- ComfyUI `127.0.0.1:8188`: unavailable
-- Diffusers: not installed
-- system Python Torch: `2.12.0+cpu`
-- system Python CUDA availability: false
-- image evaluator model: not configured/cached
-- MRMIC during post-test probe: unavailable because the verified server had been stopped
+- external runtime disk use: 10.91 GiB
+- ComfyUI: `0.34.0`
+- ComfyUI Python: `3.13.14`
+- ComfyUI Torch: `2.13.0+cu130`
+- ComfyUI CUDA: `13.0`
+- ComfyUI device: `cuda:0 NVIDIA GeForce RTX 3070`
+- ComfyUI custom nodes: disabled
+- ComfyUI binding: localhost `127.0.0.1:8188`
+- ComfyUI queue after smoke: running 0, pending 0
+- generation checkpoint: SD1.5 EMA-only, 4,265,146,304 bytes, SHA-256 verified
+- evaluator: SigLIP B/16 pinned at `7fd15f0689c79d79e38b1c2e2e2370a7bf2761ed`
+- evaluator model and six processor/tokenizer files: 7/7 hashes verified
+- evaluator execution: CPU through isolated `.venv`
+- evaluator SentencePiece: `0.2.2`, wheel SHA-256 verified
+- global Python environment modified: false
 
-The presence of an NVIDIA GPU does not make the current Python runtime CUDA-capable.
+Real provider smoke:
+
+- evidence class: `REAL_PROVIDER_FIXTURE_SOURCE`
+- ComfyUI prompt execution: completed
+- execution ID: `c38ff4cf-336b-409d-9bd7-d0a7051101b5`
+- model: `stable-diffusion-v1-5/stable-diffusion-v1-5`
+- model revision: `451f4fe16113bff5a5d2269ed5ad43b0592e9a14`
+- parameter digest: `cabf71be40b6774475d42a05008eb3de83144937b6cbe17e964ce19e4dd60843`
+- output PNG: 127,618 bytes
+- output SHA-256: `1db202a9b12ce47e6e776f3219d4c09623f660984807e19aa7214730563de254`
+- source class: deterministic test fixture, not a rights-clear user Character Remaster task
+- real provider execution time: approximately 51 seconds including first model initialization
+
+Real evaluator smoke:
+
+- evidence class: `REAL_EVALUATOR_FIXTURE_SOURCE_UNCALIBRATED`
+- evaluator: `evaluator:clip-hybrid` v0.1.0
+- model license: Apache-2.0
+- measurement: representation similarity, not exact identity proof
+- artifact decode/dimensions/hash: verified
+- scores: identity 0.9023, line 1.0000, color 0.8459, style 0.9023, artifact quality 1.0000, negative similarity 0.6259
+- verdict: `UNVERIFIED`
+- exact reason: `thresholds_not_calibrated`
+
+The smoke evidence proves that the real provider and evaluator paths execute. It does not satisfy the real source/reference, calibrated evaluation, or human-review gates.
+
+ComfyUI was stopped after smoke verification. Port 8188 and the ComfyUI process count returned to zero; the verified runtime remains restartable.
+
+The system Python remains CPU-only. CUDA generation is provided only by the isolated ComfyUI portable runtime.
 
 ## Acceptance gates
 
 | Gate | Status | Evidence |
 |---|---|---|
-| P1: real source/reference -> at least two real candidates | BLOCKED | No rights-clear local source/reference pack; no real generation runtime/model |
-| P2: real evaluator evidence | BLOCKED | Evaluator boundary exists; no approved/cached image model or calibrated fixture thresholds |
+| P1: real source/reference -> at least two real candidates | PARTIAL | Real ComfyUI/model execution passed with a fixture source; rights-clear source/references and a two-candidate real batch are absent |
+| P2: real evaluator evidence | PARTIAL | Real SigLIP inference and deterministic measurements passed; fixture thresholds remain uncalibrated |
 | P3: accepted candidate passes promotion gate | BLOCKED | No real candidates/evaluation |
 | P4: current version changes after real human review | BLOCKED | No real human review; no promotion |
 | P5: live MRMIC candidate/promoted projection | CONTRACT + LIVE BRIDGE PASS, REAL ASSET NOT MEASURED | Cross-process create/patch/render passed with logical artifact IDs |
@@ -175,16 +217,12 @@ The presence of an NVIDIA GPU does not make the current Python runtime CUDA-capa
 
 1. A rights-clear local source image is absent.
 2. Required line, color, and negative references are absent.
-3. ComfyUI is not installed or running.
-4. No approved generation checkpoint is present.
-5. Diffusers is absent and the current Torch installation is CPU-only.
-6. No approved image-embedding model is cached.
-7. Thresholds remain `EXAMPLE_UNCALIBRATED` because no real fixture set has been measured.
-8. No real candidate batch has been generated.
-9. No real user review has been recorded.
-10. No real Workbench candidate has been promoted.
+3. Thresholds remain `EXAMPLE_UNCALIBRATED` because no real fixture set has been measured.
+4. No two-candidate rights-clear Character Remaster batch has been generated.
+5. No real user review has been recorded.
+6. No real Workbench candidate has been promoted.
 
-## Recommended next narrow gate, pending user approval
+## Installed approved runtime
 
 ### External generation runtime
 
@@ -212,24 +250,25 @@ The presence of an NVIDIA GPU does not make the current Python runtime CUDA-capa
 - license: Apache-2.0
 - execution: CPU is sufficient for the small candidate batch; GPU is not claimed
 
-Estimated additional local storage, including extracted runtime and caches: 10-15 GiB. This is an estimate; exact post-extraction size will be measured if approved.
+Measured external runtime storage after installation: 10.91 GiB.
 
-After approval, the next sequence is:
+## Next narrow gate: rights-clear asset intake
 
-1. download and hash-verify the three approved artifacts;
-2. start and probe ComfyUI without custom nodes;
-3. place the user-approved private source/reference pack in ignored directories;
-4. calibrate thresholds on that declared fixture set;
-5. generate two candidates and stop for real human review;
-6. consume the review, promote the selected candidate, start MRMIC, project candidate/promoted state, and verify render;
-7. rerun full verification and update this report to the measured final classification.
+1. Place the user-approved private source/reference pack in the ignored directories named by `D:\Ai\work together\EveAtelier-runtime\README.md`.
+2. Record exact asset hashes and rights/provenance metadata.
+3. Calibrate thresholds on that declared fixture set without reusing smoke scores.
+4. Restart the verified ComfyUI runtime and generate two candidates.
+5. Stop for real human review.
+6. Consume the review, promote the selected candidate, start MRMIC, project candidate/promoted state, and verify render.
+7. Rerun full verification and update this report to the measured final classification.
 
 ## Non-claims
 
 - No Real MVP PASS is claimed.
-- No real image-generation provider execution is claimed.
+- One real image-generation provider execution is claimed only as fixture-source smoke evidence.
+- No rights-clear user Character Remaster generation batch is claimed.
 - No identity preservation is claimed from provider receipts or fixtures.
 - No human approval is claimed.
-- No model was downloaded or installed in this work.
+- Approved runtimes and model weights were installed only under the adjacent external runtime; no model bytes entered Git.
 - No private image was committed.
 - No remote branch, release, deployment, or publication occurred.

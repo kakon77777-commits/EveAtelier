@@ -4,6 +4,11 @@ import json
 import sys
 from pathlib import Path
 
+try:
+    from .image_feature_output import normalized_image_features
+except ImportError:
+    from image_feature_output import normalized_image_features
+
 EVALUATOR_ID = "evaluator:clip-hybrid"
 EVALUATOR_VERSION = "0.1.0"
 
@@ -142,7 +147,7 @@ def embedding_features(paths, model, processor, torch, device):
         pixel_values = inputs["pixel_values"].to(device)
         with torch.no_grad():
             features = model.get_image_features(pixel_values=pixel_values)
-            features = features / features.norm(dim=-1, keepdim=True).clamp_min(1e-12)
+            features = normalized_image_features(features)
         return features.detach().cpu().numpy()
     finally:
         for image in images:
