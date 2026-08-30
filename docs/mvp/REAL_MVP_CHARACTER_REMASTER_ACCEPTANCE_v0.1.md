@@ -10,7 +10,7 @@ Canonical baseline: `main@2aad5e79d8442197a15c8cd5c0d95b4149e878a1`
 
 **PARTIAL**
 
-The Real MVP architecture and executable boundaries are implemented and independently regressed. The approved external generation runtime, generation model, and evaluator model are installed and have passed real provider/evaluator smoke tests. A real Character Remaster task has not yet run because the rights-clear source/reference pack is absent and thresholds have not been calibrated on that pack. No human review or real candidate promotion has occurred.
+The Real MVP architecture and executable boundaries are implemented and independently regressed. The approved external generation runtime, generation model, and evaluator model are installed and have passed real provider/evaluator smoke tests. A complete five-image private local asset pack is present and hash-verified, but its game-source asset is not proven `rights_clear_real`, the two negative references are not yet bound by the current single-role contract, and thresholds have not been calibrated on this pack. No human review or real candidate promotion has occurred.
 
 The PASS definition has not been lowered.
 
@@ -202,11 +202,45 @@ ComfyUI was stopped after smoke verification. Port 8188 and the ComfyUI process 
 
 The system Python remains CPU-only. CUDA generation is provided only by the isolated ComfyUI portable runtime.
 
+## Private asset intake evidence
+
+Asset-pack metadata: `artifacts/runtime/real-mvp/asset-intake/asset-pack-v1.json` (gitignored)
+
+Negative-reference metadata: `artifacts/runtime/real-mvp/asset-intake/negative-references.json` (gitignored)
+
+Observed and independently rechecked:
+
+- source target: `fixtures/real_mvp/character_remaster/source/character_1001.png`
+- source SHA-256: `41dc532e38374e3f5c2215f9c9789a1f2af3c9c772df0a6ac842383d4401f248`
+- source shape: 1280x1280 RGBA
+- source classification: BuildID 25006280 game-original offline research copy, `resources.assets` pathID 2637, research identity `萬輕舟1`
+- line target: `fixtures/real_mvp/character_remaster/reference/line_ref.png`
+- line SHA-256: `4eae1389d9d5dd8ae416610757a357ec39bb9c60280cde1e12611ed0fdadef4a`
+- line shape: 1254x1254 RGB
+- line classification: user-provided generated private reference; baked black background must not be inherited
+- color target: `fixtures/real_mvp/character_remaster/reference/color_ref.png`
+- color SHA-256: `7b94abbb23612e7eddf4426041875e530f877a4c0d162cd8ed98d766effd57c4`
+- color shape: 1122x1402 RGB
+- color classification: user-provided generated private reference; generated calligraphy and seals are not reliable content to inherit
+- negative references: two user-provided private images, both marked `negative_reference`, with no primary or ordering
+- source/line/color origin-to-target hashes: 3/3 exact
+- all five private images matched Git ignore rules and remained absent from `git status`
+- workshop "cool clothing" images were excluded from selection
+- mutations to the game original: 0
+
+Authority classification:
+
+- private local EveAtelier experiment: user-authorized
+- public redistribution or Git submission: not authorized
+- `rights_clear_real`: not proven
+
+Private approval permits a bounded local experiment but does not satisfy or replace the stricter public-rights evidence gate.
+
 ## Acceptance gates
 
 | Gate | Status | Evidence |
 |---|---|---|
-| P1: real source/reference -> at least two real candidates | PARTIAL | Real ComfyUI/model execution passed with a fixture source; rights-clear source/references and a two-candidate real batch are absent |
+| P1: real source/reference -> at least two real candidates | PARTIAL / RIGHTS BLOCKED | Five-image private pack is present and hash-verified; game source is not proven `rights_clear_real`, multiple negative binding is pending, and no two-candidate pack run occurred |
 | P2: real evaluator evidence | PARTIAL | Real SigLIP inference and deterministic measurements passed; fixture thresholds remain uncalibrated |
 | P3: accepted candidate passes promotion gate | BLOCKED | No real candidates/evaluation |
 | P4: current version changes after real human review | BLOCKED | No real human review; no promotion |
@@ -215,10 +249,10 @@ The system Python remains CPU-only. CUDA generation is provided only by the isol
 
 ## Exact blockers
 
-1. A rights-clear local source image is absent.
-2. Required line, color, and negative references are absent.
-3. Thresholds remain `EXAMPLE_UNCALIBRATED` because no real fixture set has been measured.
-4. No two-candidate rights-clear Character Remaster batch has been generated.
+1. The game-source research copy is privately authorized for this local experiment but is not proven `rights_clear_real`.
+2. Two negative references are marked with no primary; the current contract still rejects duplicate role bindings.
+3. Thresholds remain `EXAMPLE_UNCALIBRATED` because this exact private pack has not been measured.
+4. No two-candidate private-pack Character Remaster batch has been generated.
 5. No real user review has been recorded.
 6. No real Workbench candidate has been promoted.
 
@@ -252,12 +286,12 @@ The system Python remains CPU-only. CUDA generation is provided only by the isol
 
 Measured external runtime storage after installation: 10.91 GiB.
 
-## Next narrow gate: rights-clear asset intake
+## Next narrow gate: private-pack binding and bounded execution
 
-1. Place the user-approved private source/reference pack in the ignored directories named by `D:\Ai\work together\EveAtelier-runtime\README.md`.
-2. Record exact asset hashes and rights/provenance metadata.
-3. Calibrate thresholds on that declared fixture set without reusing smoke scores.
-4. Restart the verified ComfyUI runtime and generate two candidates.
+1. Extend typed reference binding and evaluator input to preserve both negative references without selecting a fake primary.
+2. Add an explicit `private_research_authorized` execution class while keeping `rights_clear_real = false` and Real MVP PASS ineligible.
+3. Calibrate thresholds on this exact declared private fixture set without reusing smoke scores.
+4. Resume only after renewed user direction; restart the verified ComfyUI runtime and generate two candidates.
 5. Stop for real human review.
 6. Consume the review, promote the selected candidate, start MRMIC, project candidate/promoted state, and verify render.
 7. Rerun full verification and update this report to the measured final classification.
