@@ -8,7 +8,9 @@
   },
   "scripts": {
     "test": "node --test",
-    "check": "node scripts/check.mjs"
+    "check": "node scripts/check.mjs",
+    "real-mvp:probe": "node scripts/real-mvp/runtime-probe.mjs",
+    "real-mvp:run": "node scripts/real-mvp/run-character-remaster.mjs"
   },
   "optionalDependencies": {
     "sharp": "^0.35.3"
