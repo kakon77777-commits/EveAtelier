@@ -1,0 +1,33 @@
+{
+  "taskId": "character-remaster-001",
+  "goal": "character_remaster",
+  "sourceAsset": "source/character_1001.png",
+  "references": [
+    {
+      "path": "reference/line_ref.png",
+      "role": "line_reference"
+    },
+    {
+      "path": "reference/color_ref.png",
+      "role": "color_reference"
+    },
+    {
+      "path": "reference/negative_face_ref.png",
+      "role": "negative_reference"
+    }
+  ],
+  "constraints": {
+    "identity": "hard",
+    "styleDirection": "strong",
+    "artifactQuality": "strong",
+    "candidateCount": 2,
+    "humanReviewRequired": true,
+    "baseSeed": 41001
+  },
+  "intentText": [
+    "Preserve the character identity",
+    "Use cleaner line work",
+    "Keep a low-saturation wuxia direction",
+    "Avoid homogenized AI-face features"
+  ]
+}
