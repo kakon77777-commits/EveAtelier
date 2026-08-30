@@ -1,0 +1,31 @@
+{
+  "capturedAt": "2026-08-30",
+  "environment": {
+    "node": "22.16.0",
+    "python": "3.13.5"
+  },
+  "providers": {
+    "sharp": {
+      "available": false,
+      "reason": "sharp_not_installed"
+    },
+    "pillowReference": {
+      "available": true,
+      "providerId": "provider:pillow-reference",
+      "version": "12.3.0"
+    },
+    "diffusers": {
+      "available": false,
+      "reason": "diffusers_not_installed"
+    },
+    "comfyui": {
+      "available": false,
+      "reason": "comfyui_unavailable"
+    },
+    "ofpLite": {
+      "available": true,
+      "mode": "local_approximation",
+      "evidence": "covered_by_automated_tests"
+    }
+  }
+}
