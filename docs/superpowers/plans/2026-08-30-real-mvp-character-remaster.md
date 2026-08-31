@@ -471,7 +471,7 @@ The test prints whether the capability is `legacy_local` or bearer-secured; it d
 Run: `node --test tests/mrmic-client.test.js`
 Expected: PASS.
 
-Start the clean sibling server from `D:\Ai\work together\MRMIC_NVCL` with `npm run web`, wait for `/api/capabilities`, then run:
+Start the clean sibling server from `<local-mrmic-checkout>` with `npm run web`, wait for `/api/capabilities`, then run:
 
 ```powershell
 $env:EVE_REAL_MVP='1'

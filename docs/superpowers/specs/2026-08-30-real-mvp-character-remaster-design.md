@@ -6,7 +6,7 @@ Branch: `integration/real-mvp-character-remaster`
 
 ## Authority and provenance
 
-The user explicitly authorized taking over the Real MVP work from the supplied handoff package and using `D:\Ai\work together\EveAtelier` as the working directory.
+The user explicitly authorized taking over the Real MVP work from the supplied handoff package and using a dedicated local EveAtelier checkout as the working directory.
 
 The supplied package is:
 

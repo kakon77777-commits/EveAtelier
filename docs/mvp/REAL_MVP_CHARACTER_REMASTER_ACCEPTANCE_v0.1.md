@@ -80,7 +80,7 @@ The package documents were used as the user-approved design/execution brief, not
 
 MRMIC sibling checkout:
 
-- repository: `D:\Ai\work together\MRMIC_NVCL`
+- repository: `<local-mrmic-checkout>`
 - version: `0.14.0`
 - commit: `791efb9`
 - tracked state before and after: clean, equal to `origin/main`
@@ -143,11 +143,11 @@ Automated fixtures, HTTP doubles, and simulated review records are contract evid
 
 ## Runtime readiness and real provider/evaluator smoke
 
-External runtime root: `D:\Ai\work together\EveAtelier-runtime`
+External runtime root: `<local-external-runtime>`
 
-Runtime manifest: `D:\Ai\work together\EveAtelier-runtime\manifests\RUNTIME_MANIFEST.json`
+Runtime manifest: `<local-external-runtime>/manifests/RUNTIME_MANIFEST.json`
 
-Machine-local run config: `D:\Ai\work together\EveAtelier-runtime\configs\real-mvp-comfyui.json`
+Machine-local run config: `<local-external-runtime>/configs/real-mvp-comfyui.json`
 
 Observed:
 
@@ -287,7 +287,7 @@ Workbench state:
 
 Private review package:
 
-- desktop path: `C:\Users\kakon\OneDrive\Desktop\EveAtelier_Private_Basic_MVP_Review_2026-08-31.zip`
+- desktop path: `<user-desktop>/EveAtelier_Private_Basic_MVP_Review_2026-08-31.zip`
 - bytes: 13,697,478
 - SHA-256: `4b6f4c877db312eb4def9c39e4b92ae1267e561272b93bb1190f9f8f2ce21719`
 - archive files: 15
