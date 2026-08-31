@@ -20,6 +20,8 @@
 - 每個 style reference 必須有 byte hash 與明確 influence mask。
 - style reference 對 `faceIdentity`、`gender`、`characterIdentity`、
   `costumeIdentity` 必須明確為 `false`，否則拒絕編譯。
+- layer、constraint、reference 與 influence mask 採 exact-field validation；未知的
+  provider/workflow/path/outcome/identity 欄位不會被 passthrough。
 - packet 不含 prompt、ControlNet、LoRA 或 provider parameters；這些仍由後續
   provider compiler 決定。
 
@@ -37,7 +39,9 @@
 每一維都有 status、confidence、evidence references，整份 observation 另需 source、
 candidate、references 的 logical ID / SHA-256，以及 evaluator ID、version、measurement、
 limits。缺維度、越界 confidence、缺 evaluator provenance、額外 scalar `styleScore`，
-或直接宣稱 `CALIBRATED` 都會 fail closed。
+或直接宣稱 `CALIBRATED` 都會 fail closed。Observation、artifact、scope、evaluator 與
+dimension 也採 exact-field validation，不能夾帶 private path、provider parameters、
+acceptance 或 promotion 欄位。
 
 目前唯一允許的 calibration state 是：
 
@@ -53,14 +57,16 @@ UNVERIFIED / same_series_thresholds_not_calibrated
 
 ### HumanPairwisePreference
 
-偏好 evidence 必須綁定 `PROJECT_LOCAL` project/task scope、兩個不同 artifact、選擇、
-理由與時間。它與 SameSeriesObservation 分開保存，不會產生 acceptance 或 promotion。
-任何 universal scope claim 都會被拒絕。
+偏好 evidence 必須綁定 `PROJECT_LOCAL` project/task scope、兩個不同 artifact 的 logical ID
+與 SHA-256、選擇、理由與時間。組裝 review 時，scope 與 candidate bytes 都必須和
+SameSeriesObservation 相符。偏好與 observation decision 分開保存，不會產生 acceptance
+或 promotion；任何 universal scope claim 都會被拒絕。
 
 ## 1086 私人 benchmark intake
 
 已在 Git-ignored runtime 建立 path-bearing metadata，並逐檔重算 source、兩張衍生圖與
-目前 Repair A anchor 的 SHA-256；四組皆相符。圖片 bytes 沒有加入 tracked fixtures。
+目前 Repair A anchor 的 SHA-256；四組皆相符。圖片 bytes 沒有加入 tracked fixtures，
+Reflexive Visual Generation 本機 intake 目錄也有精確 ignore rule，避免被廣域 staging。
 
 使用者的偏好原句只足以表達「目前 EveAtelier 方向優於兩張 1086 衍生圖所代表的比較
 集合」。它沒有排序兩張衍生圖，而且 Repair A 與 1086 不是同一來源角色。因此該紀錄
@@ -73,7 +79,7 @@ npm run check
 checked_js=22 checked_python=true
 
 npm test
-89 tests / 88 pass / 0 fail / 1 explicit live-MRMIC opt-in skip
+94 tests / 93 pass / 0 fail / 1 explicit live-MRMIC opt-in skip
 ```
 
 ## 非主張

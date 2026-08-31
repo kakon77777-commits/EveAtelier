@@ -7,4 +7,5 @@ __pycache__/
 .cache/
 .worktrees/
 artifacts/runtime/
+/docs/AI原生開源美術系統/Reflexive_Visual_Generation_Series/
 .env

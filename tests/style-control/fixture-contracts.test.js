@@ -1,6 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { spawnSync } from 'node:child_process';
 import { readFile } from 'node:fs/promises';
+import { fileURLToPath } from 'node:url';
 import {
   compileStyleConstraintPacket,
   createSameSeriesReview,
@@ -28,4 +30,22 @@ test('tracked examples exercise the public-safe style and same-series contracts'
   const serialized = JSON.stringify({ packetInput, reviewInput });
   assert.doesNotMatch(serialized, /[A-Za-z]:[\\/]/);
   assert.doesNotMatch(serialized, /(?:source|candidate|reference)Path/i);
+});
+
+test('the local Reflexive Visual Generation intake is protected from broad Git staging', () => {
+  const repoRoot = fileURLToPath(new URL('../../', import.meta.url));
+  const privateImage = [
+    'docs',
+    'AI原生開源美術系統',
+    'Reflexive_Visual_Generation_Series',
+    'source',
+    'private-derived.png',
+  ].join('/');
+  const result = spawnSync(
+    'git',
+    ['check-ignore', '--no-index', '--quiet', '--', privateImage],
+    { cwd: repoRoot, windowsHide: true },
+  );
+
+  assert.equal(result.status, 0, result.stderr?.toString() || 'private intake is not ignored');
 });

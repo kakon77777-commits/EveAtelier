@@ -24,12 +24,17 @@ function completeObservation() {
   ]));
   return {
     schema: 'eve-atelier-same-series-observation/v1',
-    observationId: 'same-series:1086:candidate-02:01',
-    stylePacketId: 'style-packet:character-remaster-1086:01',
+    observationId: 'example:same-series:candidate-right:01',
+    stylePacketId: 'example:style-packet:01',
     calibrationStatus: 'EXPERIMENTAL_UNCALIBRATED',
-    source: artifact('private-source:wanxiang-role-1086', 'a'),
-    candidate: artifact('private-candidate:1086-derived-02', 'b'),
-    references: [artifact('private-reference:style-core-01', 'c')],
+    scope: {
+      kind: 'PROJECT_LOCAL',
+      projectId: 'example:eveatelier-project',
+      taskId: 'example:character-style-task:01',
+    },
+    source: artifact('example:source:01', 'a'),
+    candidate: artifact('example:candidate:right', 'b'),
+    references: [artifact('example:style-core-reference:01', 'c')],
     evaluator: {
       evaluatorId: 'human-assisted:same-series-observer',
       evaluatorVersion: '0.1.0',
@@ -67,14 +72,14 @@ test('keeps a project-local human preference separate from uncalibrated acceptan
   const observation = completeObservation();
   const preference = {
     schema: 'eve-atelier-human-pairwise-preference/v1',
-    preferenceId: 'preference:1086-derived:01',
+    preferenceId: 'example:preference:01',
     scope: {
       kind: 'PROJECT_LOCAL',
-      projectId: 'EveAtelier',
-      taskId: 'character-remaster-1086',
+      projectId: 'example:eveatelier-project',
+      taskId: 'example:character-style-task:01',
     },
-    leftArtifactId: 'private-candidate:1086-derived-01',
-    rightArtifactId: 'private-candidate:1086-derived-02',
+    leftArtifact: artifact('example:candidate:left', 'd'),
+    rightArtifact: artifact('example:candidate:right', 'b'),
     preferred: 'RIGHT',
     reason: 'The right image better matches the current project direction.',
     observedAt: '2026-08-31T00:00:00+08:00',
@@ -96,15 +101,15 @@ test('keeps a project-local human preference separate from uncalibrated acceptan
 test('rejects a preference that makes a universal quality claim', () => {
   const preference = {
     schema: 'eve-atelier-human-pairwise-preference/v1',
-    preferenceId: 'preference:1086-derived:universal',
+    preferenceId: 'example:preference:universal',
     scope: {
       kind: 'PROJECT_LOCAL',
-      projectId: 'EveAtelier',
-      taskId: 'character-remaster-1086',
+      projectId: 'example:eveatelier-project',
+      taskId: 'example:character-style-task:01',
       universal: true,
     },
-    leftArtifactId: 'private-candidate:1086-derived-01',
-    rightArtifactId: 'private-candidate:1086-derived-02',
+    leftArtifact: artifact('example:candidate:left', 'd'),
+    rightArtifact: artifact('example:candidate:right', 'b'),
     preferred: 'RIGHT',
     reason: 'This image is universally better.',
     observedAt: '2026-08-31T00:00:00+08:00',
@@ -123,11 +128,11 @@ test('rejects a review whose preference pair is unrelated to the observed candid
     preferenceId: 'preference:unrelated:01',
     scope: {
       kind: 'PROJECT_LOCAL',
-      projectId: 'EveAtelier',
-      taskId: 'character-remaster-1086',
+      projectId: 'example:eveatelier-project',
+      taskId: 'example:character-style-task:01',
     },
-    leftArtifactId: 'private-candidate:unrelated-01',
-    rightArtifactId: 'private-candidate:unrelated-02',
+    leftArtifact: artifact('example:unrelated-candidate:01', 'd'),
+    rightArtifact: artifact('example:unrelated-candidate:02', 'e'),
     preferred: 'LEFT',
     reason: 'Valid pairwise evidence for a different comparison.',
     observedAt: '2026-08-31T00:00:00+08:00',
@@ -137,6 +142,59 @@ test('rejects a review whose preference pair is unrelated to the observed candid
   assert.throws(
     () => createSameSeriesReview({ observation: completeObservation(), humanPreference }),
     /human_preference_not_bound_to_observation_candidate/,
+  );
+});
+
+test('binds pairwise preference to the exact candidate bytes and observation scope', () => {
+  const observation = completeObservation();
+  const preference = {
+    schema: 'eve-atelier-human-pairwise-preference/v1',
+    preferenceId: 'preference:bound:01',
+    scope: structuredClone(observation.scope),
+    leftArtifact: artifact('example:candidate:left', 'd'),
+    rightArtifact: artifact(observation.candidate.artifactId, 'c'),
+    preferred: 'RIGHT',
+    reason: 'The right candidate better matches the current project direction.',
+    observedAt: '2026-08-31T00:00:00+08:00',
+    evidenceClass: 'human_observed',
+  };
+
+  assert.throws(
+    () => createSameSeriesReview({ observation, humanPreference: preference }),
+    /human_preference_not_bound_to_observation_candidate_bytes/,
+  );
+
+  preference.rightArtifact.sha256 = observation.candidate.sha256;
+  preference.scope.taskId = 'different-task';
+  assert.throws(
+    () => createSameSeriesReview({ observation, humanPreference: preference }),
+    /human_preference_scope_mismatch/,
+  );
+});
+
+test('rejects unknown outcome fields in preferences and review assembly', () => {
+  const observation = completeObservation();
+  const humanPreference = {
+    schema: 'eve-atelier-human-pairwise-preference/v1',
+    preferenceId: 'preference:outcome:01',
+    scope: structuredClone(observation.scope),
+    leftArtifact: artifact('example:candidate:left', 'd'),
+    rightArtifact: structuredClone(observation.candidate),
+    preferred: 'RIGHT',
+    reason: 'Bounded project-local preference.',
+    observedAt: '2026-08-31T00:00:00+08:00',
+    evidenceClass: 'human_observed',
+    promotion: true,
+  };
+
+  assert.deepEqual(validateHumanPairwisePreference(humanPreference), {
+    ok: false,
+    reason: 'human_preference_field_forbidden:promotion',
+  });
+  delete humanPreference.promotion;
+  assert.throws(
+    () => createSameSeriesReview({ observation, humanPreference, acceptance: 'ACCEPT' }),
+    /same_series_review_field_forbidden:acceptance/,
   );
 });
 
@@ -174,5 +232,36 @@ test('fails closed on incomplete, scalar-only, malformed, or prematurely calibra
     mutate(observation);
     assert.deepEqual(validateSameSeriesObservation(observation), { ok: false, reason }, name);
     assert.equal(classifySameSeriesObservation(observation).verdict, 'INVALID', name);
+  }
+});
+
+test('rejects unknown outcome, path, provider, and dimension fields in observations', () => {
+  const cases = [
+    [
+      'outcome',
+      observation => { observation.acceptance = 'ACCEPT'; },
+      'same_series_observation_field_forbidden:acceptance',
+    ],
+    [
+      'artifact path',
+      observation => { observation.source.path = 'D:\\private\\source.png'; },
+      'source_artifact_field_forbidden:path',
+    ],
+    [
+      'provider parameters',
+      observation => { observation.evaluator.providerParameters = { model: 'private' }; },
+      'same_series_evaluator_field_forbidden:providerParameters',
+    ],
+    [
+      'dimension outcome',
+      observation => { observation.dimensions.detailLanguage.promotion = true; },
+      'same_series_dimension_field_forbidden:detailLanguage:promotion',
+    ],
+  ];
+
+  for (const [name, mutate, reason] of cases) {
+    const observation = completeObservation();
+    mutate(observation);
+    assert.deepEqual(validateSameSeriesObservation(observation), { ok: false, reason }, name);
   }
 });

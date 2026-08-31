@@ -4,6 +4,11 @@
     "observationId": "example:same-series-observation:01",
     "stylePacketId": "example:style-packet:01",
     "calibrationStatus": "EXPERIMENTAL_UNCALIBRATED",
+    "scope": {
+      "kind": "PROJECT_LOCAL",
+      "projectId": "example:eveatelier-project",
+      "taskId": "example:character-style-task:01"
+    },
     "source": {
       "artifactId": "example:source:01",
       "sha256": "2222222222222222222222222222222222222222222222222222222222222222"
@@ -75,8 +80,14 @@
       "projectId": "example:eveatelier-project",
       "taskId": "example:character-style-task:01"
     },
-    "leftArtifactId": "example:candidate:01",
-    "rightArtifactId": "example:candidate:02",
+    "leftArtifact": {
+      "artifactId": "example:candidate:01",
+      "sha256": "3333333333333333333333333333333333333333333333333333333333333333"
+    },
+    "rightArtifact": {
+      "artifactId": "example:candidate:02",
+      "sha256": "4444444444444444444444444444444444444444444444444444444444444444"
+    },
     "preferred": "NEITHER",
     "reason": "Example only; no human preference was measured.",
     "observedAt": "2026-08-31T00:00:00+08:00",

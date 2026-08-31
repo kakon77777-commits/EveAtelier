@@ -10,8 +10,9 @@ The current contracts deliberately stop at `EXPERIMENTAL_UNCALIBRATED`:
   explicit reference influence masks. Provider compilers remain downstream.
 - `SameSeriesObservation` records six separate dimensions plus artifact and evaluator
   provenance. A scalar style score is not a substitute.
-- `HumanPairwisePreference` is project-local evidence. It is stored alongside, not
-  inside, the observation decision and cannot promote an artifact.
+- `HumanPairwisePreference` is project-local evidence bound to both artifact IDs and
+  SHA-256 byte identities. Its scope must match the observation. It is stored alongside,
+  not inside, the observation decision and cannot promote an artifact.
 - Every structurally valid observation currently classifies as `UNVERIFIED` with
   `same_series_thresholds_not_calibrated`.
 
