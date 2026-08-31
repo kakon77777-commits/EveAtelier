@@ -2,6 +2,7 @@ import { DatabaseSync } from 'node:sqlite';
 import { canonicalJson, digestDefinition } from './canonical.js';
 import {
   validateExperienceEvent,
+  validateOperatorInvocation,
   validateOperatorPack,
   validateProviderCapabilityManifest,
 } from './contracts.js';
@@ -50,6 +51,7 @@ const lifecycleTransitions = Object.freeze({
 
 export class OperatorRegistryStore {
   #database;
+  #runtimeAttempts = new Map();
 
   constructor({ path = ':memory:' } = {}) {
     this.#database = new DatabaseSync(path);
@@ -238,9 +240,12 @@ export class OperatorRegistryStore {
     return structuredClone(event);
   }
 
-  appendExperience(event, { providerManifest } = {}) {
+  appendExperience(event) {
     const validation = validateExperienceEvent(event);
     if (!validation.ok) throw new Error(validation.reason);
+    if (event.provenance.kind === 'RUNTIME') {
+      throw new Error('runtime_experience_requires_prepared_token');
+    }
     const pack = this.getPack(event.packRef);
     const operator = pack.families
       .flatMap(family => family.variants)
@@ -272,27 +277,12 @@ export class OperatorRegistryStore {
     if (event.provenance.kind !== 'RUNTIME' && event.providerRef !== undefined) {
       throw new Error('operator_experience_provider_ref_forbidden_for_proposal');
     }
-    if (event.provenance.kind === 'RUNTIME' && event.providerRef === undefined) {
-      throw new Error('operator_experience_runtime_provider_ref_required');
-    }
-    if (event.provenance.kind === 'RUNTIME') {
-      if (providerManifest === undefined) {
-        throw new Error('operator_experience_runtime_manifest_required');
-      }
-      const manifestValidation = validateProviderCapabilityManifest(providerManifest);
-      if (!manifestValidation.ok) {
-        throw new Error(`operator_experience_runtime_manifest_invalid:${manifestValidation.reason}`);
-      }
-      if (providerManifest.providerId !== event.providerRef.providerId
-          || providerManifest.providerVersion !== event.providerRef.providerVersion) {
-        throw new Error('operator_experience_runtime_provider_mismatch');
-      }
-      const capability = providerManifest.operators.find(item => (
-        item.operatorId === event.operatorRef.operatorId
-        && item.versions.includes(event.operatorRef.version)
-      ));
-      if (!capability) throw new Error('operator_experience_runtime_operator_capability_missing');
-    }
+    return this.#insertExperience(event);
+  }
+
+  #insertExperience(event) {
+    const validation = validateExperienceEvent(event);
+    if (!validation.ok) throw new Error(validation.reason);
     this.#database.prepare(`
       INSERT INTO experience_events (
         event_id, operation_id, pack_id, version, digest, operator_id, operator_version,
@@ -323,6 +313,129 @@ export class OperatorRegistryStore {
       event.occurredAt,
     );
     return structuredClone(event);
+  }
+
+  beginRuntimeExperience({ invocation, providerManifest, inputSha256, occurredAt } = {}) {
+    const invocationValidation = validateOperatorInvocation(invocation);
+    if (!invocationValidation.ok) throw new Error(invocationValidation.reason);
+    if (!/^[a-f0-9]{64}$/i.test(inputSha256 ?? '') || !validDate(occurredAt)) {
+      throw new Error('runtime_experience_preparation_invalid');
+    }
+    const pack = this.getPack(invocation.packRef);
+    if (this.getStatus(invocation.packRef) !== 'ACTIVE') {
+      throw new Error('runtime_experience_pack_not_active');
+    }
+    const operator = pack.families
+      .flatMap(family => family.variants)
+      .find(variant => variant.operatorId === invocation.operatorRef.operatorId
+        && variant.version === invocation.operatorRef.version);
+    if (!operator || operator.executionMode !== 'PROVIDER_BOUND') {
+      throw new Error('runtime_experience_operator_not_provider_bound');
+    }
+    const manifestValidation = validateProviderCapabilityManifest(providerManifest);
+    if (!manifestValidation.ok) {
+      throw new Error(`runtime_experience_manifest_invalid:${manifestValidation.reason}`);
+    }
+    if (providerManifest.availability !== 'AVAILABLE') {
+      throw new Error('runtime_experience_manifest_unavailable');
+    }
+    if (!invocation.providerPolicy.allowedPrivacy.includes(providerManifest.privacy)) {
+      throw new Error('runtime_experience_manifest_privacy_mismatch');
+    }
+    const requiredCapabilities = new Set([
+      ...operator.requiredCapabilities,
+      ...invocation.providerPolicy.requiredCapabilities,
+    ]);
+    if ([...requiredCapabilities].some(capability => !providerManifest.capabilities.includes(capability))) {
+      throw new Error('runtime_experience_manifest_capability_missing');
+    }
+    const providerOperator = providerManifest.operators.find(item => (
+      item.operatorId === operator.operatorId && item.versions.includes(operator.version)
+    ));
+    if (!providerOperator) throw new Error('runtime_experience_manifest_operator_missing');
+
+    const providerRef = {
+      providerId: providerManifest.providerId,
+      providerVersion: providerManifest.providerVersion,
+    };
+    const token = Symbol(`runtime:${invocation.operationId}`);
+    const context = {
+      invocation: structuredClone(invocation),
+      providerRef,
+      inputSha256,
+    };
+    this.#insertExperience({
+      schema: 'eve-atelier-operator-experience-event/v1',
+      eventId: `experience:${invocation.operationId}:prepared`,
+      operationId: invocation.operationId,
+      packRef: structuredClone(invocation.packRef),
+      operatorRef: structuredClone(invocation.operatorRef),
+      providerRef: structuredClone(providerRef),
+      semanticContext: { axisChanges: [], lockIds: [] },
+      inputHashes: [inputSha256],
+      outputHashes: [],
+      outcome: 'PREPARED',
+      evaluationRefs: [],
+      evidenceClass: 'CONTRACT_TESTED',
+      provenance: { kind: 'RUNTIME', id: 'operator-runtime:v1' },
+      occurredAt,
+    });
+    this.#runtimeAttempts.set(token, context);
+    return token;
+  }
+
+  completeRuntimeExperience({ token, receiptIdentity, outputHashes, occurredAt } = {}) {
+    const context = this.#runtimeAttempts.get(token);
+    if (!context) throw new Error('runtime_experience_token_invalid');
+    if (!exactFields(receiptIdentity, ['operationId', 'packRef', 'operatorRef', 'providerRef'])
+        || receiptIdentity.operationId !== context.invocation.operationId
+        || canonicalJson(receiptIdentity.packRef) !== canonicalJson(context.invocation.packRef)
+        || canonicalJson(receiptIdentity.operatorRef) !== canonicalJson(context.invocation.operatorRef)
+        || canonicalJson(receiptIdentity.providerRef) !== canonicalJson(context.providerRef)) {
+      throw new Error('runtime_experience_receipt_identity_mismatch');
+    }
+    const event = this.#insertExperience({
+      schema: 'eve-atelier-operator-experience-event/v1',
+      eventId: `experience:${context.invocation.operationId}:completed`,
+      operationId: context.invocation.operationId,
+      packRef: structuredClone(context.invocation.packRef),
+      operatorRef: structuredClone(context.invocation.operatorRef),
+      providerRef: structuredClone(context.providerRef),
+      semanticContext: { axisChanges: [], lockIds: [] },
+      inputHashes: [context.inputSha256],
+      outputHashes,
+      outcome: 'COMPLETED',
+      evaluationRefs: [],
+      evidenceClass: 'CONTRACT_TESTED',
+      provenance: { kind: 'RUNTIME', id: 'operator-runtime:v1' },
+      occurredAt,
+    });
+    this.#runtimeAttempts.delete(token);
+    return event;
+  }
+
+  failRuntimeExperience({ token, outputHashes, failureClass, occurredAt } = {}) {
+    const context = this.#runtimeAttempts.get(token);
+    if (!context) throw new Error('runtime_experience_token_invalid');
+    const event = this.#insertExperience({
+      schema: 'eve-atelier-operator-experience-event/v1',
+      eventId: `experience:${context.invocation.operationId}:failed`,
+      operationId: context.invocation.operationId,
+      packRef: structuredClone(context.invocation.packRef),
+      operatorRef: structuredClone(context.invocation.operatorRef),
+      providerRef: structuredClone(context.providerRef),
+      semanticContext: { axisChanges: [], lockIds: [] },
+      inputHashes: [context.inputSha256],
+      outputHashes,
+      outcome: 'FAILED',
+      evaluationRefs: [],
+      evidenceClass: 'CONTRACT_TESTED',
+      provenance: { kind: 'RUNTIME', id: 'operator-runtime:v1' },
+      failureClass,
+      occurredAt,
+    });
+    this.#runtimeAttempts.delete(token);
+    return event;
   }
 
   listExperience({ operatorId, packId } = {}) {
@@ -366,6 +479,7 @@ export class OperatorRegistryStore {
   }
 
   close() {
+    this.#runtimeAttempts.clear();
     this.#database.close();
   }
 }

@@ -67,8 +67,8 @@ The initial pre-MVP engineering sequence has been executed:
 - Workbench candidate staging, independent evaluation, durable human review, state resume, and promotion gate: executed for Candidate 02 and its localized Repair A child with warnings.
 - Localized repair: pinned SD1.5 core-node workflow, explicit mask upload, current-parent lineage, deterministic locality evidence, zero outside-mask pixel changes, human review, and live MRMIC promotion verified for Repair A.
 - Experimental style-control foundation: provider-neutral `StyleConstraintPacket`, six-dimensional `SameSeriesObservation`, and project-local human pairwise preference contracts; uncalibrated observations always remain `UNVERIFIED`.
-- Dynamic Operator Registry Kernel: data-loaded axes, locks, families and compiler rules; immutable version digests; REPLACE-safe append-only SQLite evidence; human-gated activation; provider-neutral semantic plans; revision-guarded exact provider receipts; PREPARED/COMPLETED/FAILED experience events; and a real registry-bound Pillow resize green control.
-- Full validation snapshot: 119 tests, 118 pass, 0 fail, 1 explicit opt-in live-MRMIC skip.
+- Dynamic Operator Registry Kernel: data-loaded axes, locks, families and compiler rules; immutable version digests; REPLACE-safe append-only SQLite evidence; human-gated activation; provider-neutral semantic plans; revision-guarded exact provider receipts; store-issued runtime evidence tokens; PREPARED/COMPLETED/FAILED experience events; and a real registry-bound Pillow resize green control.
+- Full validation snapshot: 121 tests, 120 pass, 0 fail, 1 explicit opt-in live-MRMIC skip.
 - Private source/reference and generated candidate image bytes remain Git-ignored and are not distributed by this repository.
 
 See `docs/mvp/MVP_ACCEPTANCE_REPORT_v0.1.md` for the pre-MVP baseline,

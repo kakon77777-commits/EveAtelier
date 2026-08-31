@@ -186,6 +186,16 @@ test('requires a revision guard and rejects stale targets before provider execut
       invocation,
       revisionGuard: () => ({ ok: false, reason: 'stale_revision' }),
     }), /stale_revision/);
+    await assert.rejects(() => executeInvocation({
+      store,
+      manifests: [validProviderManifest()],
+      providers: [provider],
+      invocation,
+      revisionGuard: () => ({
+        ok: true,
+        evidenceRef: 'D:\\private\\revision-evidence.json',
+      }),
+    }), /revision_validation_evidence_ref_invalid/);
     assert.equal(calls, 0);
     assert.deepEqual(store.listExperience({ operatorId: invocation.operatorRef.operatorId }), []);
   } finally {

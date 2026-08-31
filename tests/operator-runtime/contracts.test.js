@@ -115,6 +115,17 @@ test('rejects schema drift, dangling references, provider fields, and promotion 
       },
       'duplicate_compiler_source_operator:visual.op.semantic.adjust_axis',
     ],
+    [
+      'receipt authority metadata name',
+      pack => {
+        pack.families[2].variants[0].receiptMetadataSchema.push({
+          name: 'acceptance',
+          kind: 'STRING',
+          required: false,
+        });
+      },
+      'operator_receipt_metadata_name_forbidden:visual.op.raster.resize:acceptance',
+    ],
   ];
 
   for (const [name, mutate, reason] of cases) {

@@ -209,10 +209,6 @@ export function validExperienceEvent() {
       operatorId: 'visual.op.raster.resize',
       version: '1.0.0',
     },
-    providerRef: {
-      providerId: 'provider:pillow-reference',
-      providerVersion: '0.1',
-    },
     semanticContext: {
       axisChanges: [],
       lockIds: [],
@@ -223,8 +219,8 @@ export function validExperienceEvent() {
     evaluationRefs: ['evaluation:example:001'],
     evidenceClass: 'CONTRACT_TESTED',
     provenance: {
-      kind: 'RUNTIME',
-      id: 'operator-runtime:v1',
+      kind: 'AI',
+      id: 'ai:operator-learner',
     },
     occurredAt: '2026-08-31T21:01:00+08:00',
   };

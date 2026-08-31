@@ -5,7 +5,12 @@ import { mkdtemp } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { OperatorRegistryStore } from '../../src/operator-runtime/registry-store.js';
-import { validExperienceEvent, validPack, validProviderManifest } from './helpers.js';
+import {
+  validExperienceEvent,
+  validInvocation,
+  validPack,
+  validProviderManifest,
+} from './helpers.js';
 
 function humanActor() {
   return { kind: 'HUMAN', id: 'human:local-reviewer' };
@@ -143,13 +148,7 @@ test('stores exact experience evidence and makes every registry table append-onl
     const experience = validExperienceEvent();
     experience.packRef = { packId: ref.packId, version: ref.version, digest: ref.digest };
 
-    assert.throws(
-      () => store.appendExperience(experience),
-      /operator_experience_runtime_manifest_required/,
-    );
-    assert.deepEqual(store.appendExperience(experience, {
-      providerManifest: validProviderManifest(),
-    }), experience);
+    assert.deepEqual(store.appendExperience(experience), experience);
     assert.deepEqual(
       store.listExperience({ operatorId: 'visual.op.raster.resize' }),
       [experience],
@@ -197,7 +196,7 @@ test('rejects INSERT OR REPLACE attacks against every immutable registry key', a
     store.appendLifecycleEvent(lifecycle);
     const experience = validExperienceEvent();
     experience.packRef = { packId: ref.packId, version: ref.version, digest: ref.digest };
-    store.appendExperience(experience, { providerManifest: validProviderManifest() });
+    store.appendExperience(experience);
 
     attacker = new DatabaseSync(databasePath);
     const attacks = [
@@ -313,5 +312,93 @@ test('rejects dangling semantic context and provider claims in experience propos
     } finally {
       store.close();
     }
+  }
+});
+
+test('requires a store-issued prepared token for RUNTIME provenance', () => {
+  const store = new OperatorRegistryStore({ path: ':memory:' });
+  try {
+    const ref = register(store);
+    const event = validExperienceEvent();
+    event.packRef = { packId: ref.packId, version: ref.version, digest: ref.digest };
+    event.provenance = { kind: 'RUNTIME', id: 'operator-runtime:v1' };
+    event.providerRef = {
+      providerId: 'provider:pillow-reference',
+      providerVersion: '0.1',
+    };
+    assert.throws(() => store.appendExperience(event, {
+      providerManifest: validProviderManifest(),
+    }), /runtime_experience_requires_prepared_token/);
+  } finally {
+    store.close();
+  }
+});
+
+test('binds RUNTIME terminal evidence to a prepared invocation and selected capability', () => {
+  const store = new OperatorRegistryStore({ path: ':memory:' });
+  try {
+    const ref = register(store);
+    store.appendLifecycleEvent(lifecycleEvent(ref, {
+      eventId: 'lifecycle:runtime-token-exp',
+      fromStatus: 'DRAFT',
+      toStatus: 'EXPERIMENTAL_UNCALIBRATED',
+    }));
+    store.appendLifecycleEvent(lifecycleEvent(ref, {
+      eventId: 'lifecycle:runtime-token-cal',
+      fromStatus: 'EXPERIMENTAL_UNCALIBRATED',
+      toStatus: 'CALIBRATED',
+    }));
+    store.appendLifecycleEvent(lifecycleEvent(ref, {
+      eventId: 'lifecycle:runtime-token-active',
+      fromStatus: 'CALIBRATED',
+      toStatus: 'ACTIVE',
+    }));
+    const invocation = validInvocation();
+    invocation.packRef = { packId: ref.packId, version: ref.version, digest: ref.digest };
+    const token = store.beginRuntimeExperience({
+      invocation,
+      providerManifest: validProviderManifest(),
+      inputSha256: 'b'.repeat(64),
+      occurredAt: '2026-08-31T21:50:00+08:00',
+    });
+    assert.equal(typeof token, 'symbol');
+    assert.deepEqual(
+      store.listExperience({ operatorId: invocation.operatorRef.operatorId })
+        .map(event => event.outcome),
+      ['PREPARED'],
+    );
+    assert.throws(() => store.completeRuntimeExperience({
+      token: Symbol('forged'),
+      outputHashes: ['c'.repeat(64)],
+      occurredAt: '2026-08-31T21:51:00+08:00',
+    }), /runtime_experience_token_invalid/);
+
+    store.completeRuntimeExperience({
+      token,
+      receiptIdentity: {
+        operationId: invocation.operationId,
+        packRef: structuredClone(invocation.packRef),
+        operatorRef: structuredClone(invocation.operatorRef),
+        providerRef: {
+          providerId: 'provider:pillow-reference',
+          providerVersion: '0.1',
+        },
+      },
+      outputHashes: ['c'.repeat(64)],
+      occurredAt: '2026-08-31T21:51:00+08:00',
+    });
+    assert.deepEqual(
+      store.listExperience({ operatorId: invocation.operatorRef.operatorId })
+        .map(event => event.outcome),
+      ['PREPARED', 'COMPLETED'],
+    );
+    assert.throws(() => store.failRuntimeExperience({
+      token,
+      outputHashes: [],
+      failureClass: 'late_failure',
+      occurredAt: '2026-08-31T21:52:00+08:00',
+    }), /runtime_experience_token_invalid/);
+  } finally {
+    store.close();
   }
 });

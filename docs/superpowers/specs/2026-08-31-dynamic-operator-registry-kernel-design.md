@@ -2,7 +2,7 @@
 
 日期：2026-08-31
 
-狀態：`IMPLEMENTED_CANDIDATE / RE-REVIEW_PENDING / PHASE_2A`
+狀態：`IMPLEMENTED_CANDIDATE / FINAL_REVIEW_PENDING / PHASE_2A`
 
 ## 1. 目標
 
@@ -310,7 +310,7 @@ stable rank:
 - caller 提供可驗證、帶 evidence ref 的 revision guard；
 - output path 在 dispatch 前不存在。
 
-Runtime 傳給 provider exact operation ID、pack digest、operator version 與 logical artifact IDs；provider result 必須逐項回證並提供與實際 bytes 相符的 output SHA-256。Receipt 只公開 logical artifact ID/hash 與 allowlisted metadata，不公開本機 path。Runtime 先寫 `PREPARED` experience；完成或失敗後再 append `COMPLETED` / `FAILED`，但不做 evaluation、acceptance 或 Workbench promotion。
+Runtime 傳給 provider exact operation ID、pack digest、operator version 與 logical artifact IDs；provider result 必須逐項回證並提供與實際 bytes 相符的 output SHA-256。Receipt 只公開 logical artifact ID/hash 與 allowlisted metadata，不公開本機 path。Runtime 先透過 store 建立 `PREPARED` experience 並取得不可偽造的 in-memory token；完成或失敗只能持該 token append `COMPLETED` / `FAILED`。外部 proposal API 不能直接寫入 `RUNTIME` provenance。整條路徑仍不做 evaluation、acceptance 或 Workbench promotion。
 
 第一個真實綠色控制使用既有 `PillowRasterProvider` 執行 `visual.op.raster.resize`。
 
@@ -418,6 +418,7 @@ Phase 2A 完成需同時成立：
 - AI lifecycle transition rejection與 HUMAN calibration/activation gate；
 - DRAFT / EXPERIMENTAL_UNCALIBRATED / CALIBRATED / ACTIVE / DEPRECATED plan projection；
 - provider capability hard filtering、validated runtime-manifest binding與 stable ranking；
+- store-issued prepared token 與 invocation/manifest/terminal receipt identity binding；
 - exact revision、operation、pack、operator-version、artifact identity 與 output-hash attestation；
 - path-free receipt projection與 data-defined receipt metadata allowlist；
 - append-only PREPARED / COMPLETED / FAILED execution evidence；
@@ -431,7 +432,7 @@ npm run check
 checked_js=28 checked_python=true
 
 npm test
-119 tests / 118 pass / 0 fail / 1 explicit live-MRMIC opt-in skip
+121 tests / 120 pass / 0 fail / 1 explicit live-MRMIC opt-in skip
 ```
 
 仍不主張：

@@ -24,6 +24,14 @@ function providerOperator(manifest, operator) {
   ));
 }
 
+function exactFields(value, fields) {
+  return value
+    && typeof value === 'object'
+    && !Array.isArray(value)
+    && Object.keys(value).length === fields.length
+    && Object.keys(value).every(key => fields.includes(key));
+}
+
 export function matchProviderCapability({ manifests, operator, policy } = {}) {
   if (!Array.isArray(manifests) || manifests.length === 0) {
     throw new TypeError('provider_manifests_required');
@@ -136,36 +144,6 @@ function failureClass(error) {
   return message.split(':', 1)[0] || 'provider_execution_failed';
 }
 
-function runtimeExperience({
-  invocation,
-  providerRef,
-  eventId,
-  inputSha256,
-  outputHashes,
-  outcome,
-  occurredAt,
-  failure,
-}) {
-  const event = {
-    schema: 'eve-atelier-operator-experience-event/v1',
-    eventId,
-    operationId: invocation.operationId,
-    packRef: structuredClone(invocation.packRef),
-    operatorRef: structuredClone(invocation.operatorRef),
-    providerRef: structuredClone(providerRef),
-    semanticContext: { axisChanges: [], lockIds: [] },
-    inputHashes: [inputSha256],
-    outputHashes,
-    outcome,
-    evaluationRefs: [],
-    evidenceClass: 'CONTRACT_TESTED',
-    provenance: { kind: 'RUNTIME', id: 'operator-runtime:v1' },
-    occurredAt,
-  };
-  if (failure !== undefined) event.failureClass = failure;
-  return event;
-}
-
 export async function executeInvocation({
   store,
   manifests,
@@ -199,8 +177,10 @@ export async function executeInvocation({
     expectedRevision: invocation.expectedRevision,
   });
   if (!revision?.ok) throw new Error(revision?.reason ?? 'revision_validation_failed');
-  if (typeof revision.evidenceRef !== 'string' || revision.evidenceRef.length === 0) {
-    throw new Error('revision_validation_evidence_required');
+  if (typeof revision.evidenceRef !== 'string'
+      || revision.evidenceRef.length === 0
+      || containsLocalPath(revision.evidenceRef)) {
+    throw new Error('revision_validation_evidence_ref_invalid');
   }
   const selected = matchProviderCapability({
     manifests,
@@ -219,15 +199,12 @@ export async function executeInvocation({
     providerId: selected.providerId,
     providerVersion: selected.providerVersion,
   };
-  store.appendExperience(runtimeExperience({
+  const runtimeToken = store.beginRuntimeExperience({
     invocation,
-    providerRef,
-    eventId: `experience:${invocation.operationId}:prepared`,
+    providerManifest: selected,
     inputSha256,
-    outputHashes: [],
-    outcome: 'PREPARED',
     occurredAt: startedAt,
-  }), { providerManifest: selected });
+  });
   let result;
   let outputSha256;
   let metadata;
@@ -250,9 +227,11 @@ export async function executeInvocation({
       .find(key => !providerResultFields.includes(key));
     if (unknownResultField) throw new Error(`provider_result_field_forbidden:${unknownResultField}`);
     if (result.providerId !== selected.providerId
-        || result.providerVersion !== selected.providerVersion
-        || result.operationId !== invocation.operationId
-        || result.packRef?.packId !== invocation.packRef.packId
+      || result.providerVersion !== selected.providerVersion
+      || result.operationId !== invocation.operationId
+      || !exactFields(result.packRef, ['packId', 'version', 'digest'])
+      || !exactFields(result.operatorRef, ['operatorId', 'version'])
+      || result.packRef?.packId !== invocation.packRef.packId
         || result.packRef?.version !== invocation.packRef.version
         || result.packRef?.digest !== invocation.packRef.digest
         || result.operatorRef?.operatorId !== invocation.operatorRef.operatorId
@@ -272,16 +251,12 @@ export async function executeInvocation({
     );
   } catch (error) {
     const outputHashes = existsSync(invocation.output) ? [sha256(invocation.output)] : [];
-    store.appendExperience(runtimeExperience({
-      invocation,
-      providerRef,
-      eventId: `experience:${invocation.operationId}:failed`,
-      inputSha256,
+    store.failRuntimeExperience({
+      token: runtimeToken,
       outputHashes,
-      outcome: 'FAILED',
       occurredAt: now(),
-      failure: failureClass(error),
-    }), { providerManifest: selected });
+      failureClass: failureClass(error),
+    });
     throw error;
   }
   const finishedAt = now();
@@ -310,14 +285,16 @@ export async function executeInvocation({
         : 'non_reproducible',
     metadata,
   };
-  store.appendExperience(runtimeExperience({
-    invocation,
-    providerRef,
-    eventId: `experience:${invocation.operationId}:completed`,
-    inputSha256,
+  store.completeRuntimeExperience({
+    token: runtimeToken,
+    receiptIdentity: {
+      operationId: invocation.operationId,
+      packRef: structuredClone(invocation.packRef),
+      operatorRef: structuredClone(invocation.operatorRef),
+      providerRef: structuredClone(providerRef),
+    },
     outputHashes: [outputSha256],
-    outcome: 'COMPLETED',
     occurredAt: finishedAt,
-  }), { providerManifest: selected });
+  });
   return receipt;
 }

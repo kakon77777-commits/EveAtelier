@@ -55,6 +55,7 @@ const experienceFields = Object.freeze([
 const semverPattern = /^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$/;
 const absoluteLocalPath = /(?:^|[\s"'(])(?:[A-Za-z]:[\\/]|\\\\|\/(?:home|users|var|tmp|opt)\/)/i;
 const providerParameterName = /(provider|workflow|model|prompt|backend|checkpoint|lora|cfg|denoise)/i;
+const receiptMetadataReservedName = /(accept|approv|evaluat|verdict|promot|workbench|authority|credential|secret|token|password|path|provider|workflow|model|prompt|backend|checkpoint|lora|cfg|denoise)/i;
 
 function isObject(value) {
   return Boolean(value) && typeof value === 'object' && !Array.isArray(value);
@@ -254,6 +255,9 @@ function validateVariant(variant, axisIds, lockIds) {
   }
   const metadataNames = new Set();
   for (const metadata of variant.receiptMetadataSchema) {
+    if (receiptMetadataReservedName.test(metadata?.name ?? '')) {
+      return `operator_receipt_metadata_name_forbidden:${variant.operatorId}:${metadata?.name ?? ''}`;
+    }
     const failure = validateParameter(metadata, variant.operatorId);
     if (failure) return failure.replace('operator_parameter', 'operator_receipt_metadata');
     if (metadataNames.has(metadata.name)) {

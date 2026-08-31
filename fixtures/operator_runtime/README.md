@@ -17,6 +17,8 @@ Important boundaries:
 - provider receipts expose logical artifact IDs/hashes, not filesystem paths;
 - receipt metadata is checked against the operator pack's exact metadata schema;
 - execution attempts retain append-only PREPARED plus COMPLETED or FAILED evidence;
+- external proposals cannot self-label as runtime evidence; terminal runtime evidence requires a
+  store-issued token bound to the prepared invocation and selected capability manifest;
 - provider receipts do not create visual acceptance or Workbench promotion;
 - SQLite stores metadata and evidence only, never image bytes or credentials;
 - all artifact IDs and semantic concepts in these examples are synthetic.
