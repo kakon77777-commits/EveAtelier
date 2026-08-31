@@ -133,3 +133,21 @@ test('rejects unknown layer, provider, outcome, path, and influence fields', () 
     assert.throws(() => compileStyleConstraintPacket(input), expected, name);
   }
 });
+
+test('rejects provider knobs disguised as numeric style controls', () => {
+  for (const control of ['denoise', 'cfgScale', 'seed', 'loraWeight']) {
+    const input = {
+      packetId: 'example:style-packet:01',
+      taskId: 'example:character-style-task:01',
+      style: styleDefinition(),
+      references: [styleReference()],
+    };
+    input.style.layers.surfaceRendering.initialControl[control] = 0.5;
+
+    assert.throws(
+      () => compileStyleConstraintPacket(input),
+      new RegExp(`style_control_name_forbidden:surfaceRendering:${control}`),
+      control,
+    );
+  }
+});

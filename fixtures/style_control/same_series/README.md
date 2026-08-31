@@ -7,7 +7,8 @@ private filesystem paths, provider prompts, model parameters, or acceptance clai
 The current contracts deliberately stop at `EXPERIMENTAL_UNCALIBRATED`:
 
 - `StyleConstraintPacket` preserves five control layers, constraint strengths, and
-  explicit reference influence masks. Provider compilers remain downstream.
+  explicit reference influence masks. Layer controls come from a closed provider-neutral
+  registry; provider execution knobs are rejected. Provider compilers remain downstream.
 - `SameSeriesObservation` records six separate dimensions plus artifact and evaluator
   provenance. A scalar style score is not a substitute.
 - `HumanPairwisePreference` is project-local evidence bound to both artifact IDs and

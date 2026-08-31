@@ -22,6 +22,8 @@
   `costumeIdentity` 必須明確為 `false`，否則拒絕編譯。
 - layer、constraint、reference 與 influence mask 採 exact-field validation；未知的
   provider/workflow/path/outcome/identity 欄位不會被 passthrough。
+- 每一層的 `initialControl` 名稱來自封閉的 provider-neutral registry；`denoise`、
+  `cfgScale`、`seed`、`loraWeight` 等執行參數不能偽裝成 style control。
 - packet 不含 prompt、ControlNet、LoRA 或 provider parameters；這些仍由後續
   provider compiler 決定。
 
@@ -79,7 +81,7 @@ npm run check
 checked_js=22 checked_python=true
 
 npm test
-94 tests / 93 pass / 0 fail / 1 explicit live-MRMIC opt-in skip
+95 tests / 94 pass / 0 fail / 1 explicit live-MRMIC opt-in skip
 ```
 
 ## 非主張

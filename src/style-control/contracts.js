@@ -28,6 +28,39 @@ const identityInfluenceDimensions = Object.freeze([
 ]);
 const styleDefinitionFields = Object.freeze(['schema', 'styleId', 'maturity', 'layers', 'constraints']);
 const styleLayerFields = Object.freeze(['description', 'initialControl']);
+const styleControlsByLayer = Object.freeze({
+  surfaceRendering: Object.freeze([
+    'lineFineness',
+    'lineDensity',
+    'outlineHeaviness',
+    'softWash',
+    'shadowSoftness',
+    'specularStrength',
+  ]),
+  proportionSyntax: Object.freeze([
+    'silhouetteElongation',
+    'bodySlenderness',
+    'shoulderSoftness',
+    'upperBodyMass',
+    'neckElegance',
+    'faceRefinement',
+    'handElegance',
+  ]),
+  garmentVolume: Object.freeze([
+    'garmentFlow',
+    'sleeveFlow',
+    'embroideryFineness',
+    'ornamentDensity',
+    'hardSurfaceEmphasis',
+  ]),
+  compositionRhythm: Object.freeze([
+    'hairFlow',
+    'ribbonFlow',
+    'weaponDominance',
+    'backgroundMinimality',
+  ]),
+  paletteCompatibility: Object.freeze(['saturation', 'contrast', 'coolness']),
+});
 const styleReferenceFields = Object.freeze(['assetId', 'sha256', 'role', 'allowedInfluence']);
 const styleConstraintInputFields = Object.freeze(['packetId', 'taskId', 'style', 'references']);
 const referenceInfluenceFields = Object.freeze([
@@ -105,8 +138,7 @@ function validateStyle(style) {
       return `style_layer_initial_control_required:${layer}`;
     }
     for (const [control, controlValue] of Object.entries(value.initialControl)) {
-      if (!/^[a-z][A-Za-z0-9]*$/.test(control)
-          || /(provider|workflow|prompt|model|path|accept|promot|identity|gender|costume)/i.test(control)) {
+      if (!styleControlsByLayer[layer].includes(control)) {
         return `style_control_name_forbidden:${layer}:${control}`;
       }
       if (!Number.isFinite(controlValue) || controlValue < 0 || controlValue > 1) {
