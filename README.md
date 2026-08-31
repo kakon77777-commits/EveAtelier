@@ -18,7 +18,7 @@ The current three acceptance paths are:
 
 1. background removal — PASS,
 2. identity-preserving relighting — PASS within OFP-lite scope,
-3. character remastering — two real ComfyUI candidates generated and independently evaluated as `ACCEPT`; Candidate 02 is `PRIVATE_EXPERIMENTAL_CURRENT` after `ACCEPT_WITH_WARNINGS`, Workbench promotion, and live local MRMIC readback/render. Candidate 01 remains alternate; `rights_clear_real` evidence remains open.
+3. character remastering — two real ComfyUI candidates were generated and independently evaluated as `ACCEPT`; Candidate 02 was then repaired through an explicit 18.82% mask. Repair A is now `PRIVATE_EXPERIMENTAL_CURRENT` after `ACCEPT_WITH_WARNINGS`, Workbench promotion, and live local MRMIC readback/render. Repair B and Candidate 01 remain alternates; `rights_clear_real` evidence remains open.
 
 ## Architecture anchors
 
@@ -64,17 +64,17 @@ The initial pre-MVP engineering sequence has been executed:
 - Multiple negative references are preserved without selecting a fake primary.
 - OFP-lite relighting: executable approximation.
 - MRMIC Phase 13 bridge: capability, portal, freshness, transaction, and candidate-specific live local create/patch/readback/render verification.
-- Workbench candidate staging, independent evaluation, durable human review, state resume, and promotion gate: executed for Candidate 02 with warnings.
-- Full validation snapshot: 55 tests, 54 pass, 0 fail, 1 explicit opt-in live-MRMIC skip.
+- Workbench candidate staging, independent evaluation, durable human review, state resume, and promotion gate: executed for Candidate 02 and its localized Repair A child with warnings.
+- Localized repair: pinned SD1.5 core-node workflow, explicit mask upload, current-parent lineage, deterministic locality evidence, zero outside-mask pixel changes, human review, and live MRMIC promotion verified for Repair A.
+- Full validation snapshot: 81 tests, 80 pass, 0 fail, 1 explicit opt-in live-MRMIC skip.
 - Private source/reference and generated candidate image bytes remain Git-ignored and are not distributed by this repository.
 
 See `docs/mvp/MVP_ACCEPTANCE_REPORT_v0.1.md` for the pre-MVP baseline and `docs/mvp/REAL_MVP_CHARACTER_REMASTER_ACCEPTANCE_v0.1.md` for current evidence and non-claims.
 
 ## Next real-MVP gates
 
-1. Repair Candidate 02's belt metal details, cuff patterns, and hand microdetails as a new candidate; do not overwrite the accepted private version.
-2. Independently evaluate and human-review any repair candidate before promotion.
-3. Replace the private game-research source pack with assets carrying sufficient rights evidence before claiming strict Real MVP PASS or public asset distribution.
+1. Keep Repair A as the private experimental current version; any further hand-only refinement must branch again and pass the same evaluation/human-review gate.
+2. Replace the private game-research source pack with assets carrying sufficient rights evidence before claiming strict Real MVP PASS or public asset distribution.
 
 ## License
 

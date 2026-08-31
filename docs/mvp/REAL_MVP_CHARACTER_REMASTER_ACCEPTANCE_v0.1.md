@@ -4,13 +4,13 @@ Date: 2026-08-31
 
 Branch: `main`
 
-Promotion execution baseline: `main@ea4bd367542c9081aefcab7a5eeed68af66f1661`
+Localized repair execution head: `feature/candidate02-localized-repair@6c0f5487f9bf2b4c31f3fbcc35b3086b796ec510`
 
 ## Result
 
 **PARTIAL**
 
-The private Basic MVP technical path is complete through generation, independent evaluation, human review, Workbench promotion, candidate-specific MRMIC projection/readback/render, and fresh full verification. Candidate 02 was recorded as `ACCEPT_WITH_WARNINGS` and is now `PRIVATE_EXPERIMENTAL_CURRENT`; Candidate 01 remains an alternate candidate. The game-source asset is not proven `rights_clear_real`, so the strict Real MVP result remains `PARTIAL`.
+The private Basic MVP technical path is complete through generation, independent evaluation, human review, Workbench promotion, localized repair, candidate-specific MRMIC projection/readback/render, and fresh full verification. Candidate 02 became the repair parent; Repair A was recorded as `ACCEPT_WITH_WARNINGS` and is now `PRIVATE_EXPERIMENTAL_CURRENT`. Repair B and Candidate 01 remain alternates. The game-source asset is not proven `rights_clear_real`, so the strict Real MVP result remains `PARTIAL`.
 
 The PASS definition has not been lowered.
 
@@ -129,15 +129,31 @@ Candidate-specific private Basic MVP projection:
 
 The candidate-specific MRMIC server was stopped after readback. Port 4173 was no longer listening.
 
+Localized Repair A projection:
+
+- MRMIC version: `0.14.0`
+- capability schema: `mrmic-capabilities/v1`
+- canvas revision: 0 -> 2
+- portal revision: 1
+- selected repair: `document:wan-qingzhou-private-001:v3`
+- final resource: `artasset://eve-atelier/character-remaster-private-001/document:wan-qingzhou-private-001:v3/promoted?sha256=e433afb86c61076aa1c5c50f4fd38dab015bdb485af119e940c6b6d0d91ecca8`
+- candidate and promoted readback verified: true
+- portal and promoted resource present in SVG render: true
+- provider: `external`
+- ownership transferred: false
+- identity mode: `legacy_local`; no verified bearer identity is claimed
+
+The localized-repair MRMIC server was stopped after readback. Port 4173 was no longer listening.
+
 ## Automated contract evidence
 
 Fresh EveAtelier verification after implementation:
 
 - `npm run check`: PASS
-- JavaScript files checked: 20
+- JavaScript files checked: 21
 - Python provider compilation: PASS
-- Node tests discovered: 55
-- tests passed: 54
+- Node tests discovered: 81
+- tests passed: 80
 - tests failed: 0
 - tests skipped: 1
 - skipped test: explicit opt-in live MRMIC test during ordinary offline regression
@@ -299,7 +315,7 @@ Candidate 02:
 - artifact quality: 1.0000
 - maximum negative similarity: 0.6818
 - human disposition: `ACCEPT_WITH_WARNINGS`
-- retained role: `PRIVATE_EXPERIMENTAL_CURRENT`
+- retained role after repair: repair parent / history
 
 Formal human review:
 
@@ -311,13 +327,58 @@ Formal human review:
 - repair warnings: belt metal details, cuff patterns, and hand microdetails
 - scope: private experimental promotion only; not a finished game asset and not strict Real MVP PASS
 
+### Candidate 02 localized repair
+
+Repair scope:
+
+- explicit soft mask coverage: 0.188173828125
+- targets: belt metal structure, two sleeve-cuff embroidery regions, visible-hand microdetails
+- parent version: `document:wan-qingzhou-private-001:v2`
+- parent SHA-256 preserved: `3ddd032adf3735f9c1d9fa2f4029b2ed7da823930baea5561a130b8046a359ab`
+- mask SHA-256: `c4d6b2317b7a70fdd7b8aa403971b22c06c62c6fe0a8c491f0d6545502a2f909`
+
+Repair A:
+
+- version: `document:wan-qingzhou-private-001:v3`
+- seed: 42001
+- SHA-256: `e433afb86c61076aa1c5c50f4fd38dab015bdb485af119e940c6b6d0d91ecca8`
+- automated verdict: `ACCEPT`
+- identity: 0.9737
+- line: 0.9933
+- color: 0.2901
+- style: 0.7606
+- maximum negative similarity: 0.6802
+- mask-inside changed pixels: 269,578
+- mask-outside changed pixels: 0
+- human disposition: `ACCEPT_WITH_WARNINGS`
+- role: `PRIVATE_EXPERIMENTAL_CURRENT`
+
+Repair B:
+
+- version: `document:wan-qingzhou-private-001:v4`
+- seed: 42002
+- SHA-256: `960f357fa6aea2a6fb342021ae9846c8a5333ff6d0eb9f66eba5f4bb8e7da617`
+- automated verdict: `ACCEPT`
+- identity: 0.9765
+- line: 0.9934
+- color: 0.2906
+- style: 0.7707
+- maximum negative similarity: 0.6929
+- mask-inside changed pixels: 269,236
+- mask-outside changed pixels: 0
+- retained role: alternate repair candidate
+
+The real human selection preferred Repair A despite Repair B's slightly higher automated identity/style/color scores, because Repair A kept the face and beard visually closer to the v2 parent. The hand repair remains deliberately conservative.
+
 Workbench state:
 
-- current version: `document:wan-qingzhou-private-001:v2`
+- current version: `document:wan-qingzhou-private-001:v3`
 - original source version: `document:wan-qingzhou-private-001:v0` retained as history
 - source hash preserved: true
-- candidate count: 2
+- initial candidate count: 2
+- repair candidate count: 2
 - Candidate 01 remains a candidate alternate: true
+- Repair B remains a candidate alternate: true
 - promotion performed: true
 - approved by: `human:local-owner`
 
@@ -340,16 +401,16 @@ The web GPT comparison remained advisory. The user's separate explicit authoriza
 |---|---|---|
 | P1: real source/reference -> at least two real candidates | TECHNICAL PASS / RIGHTS BLOCKED | Five-image private pack, multiple negative binding, and two real ComfyUI candidates verified; game source is not proven `rights_clear_real` |
 | P2: real evaluator evidence | PRIVATE-FIXTURE PASS | Frozen private-fixture thresholds and real SigLIP evaluation produced two `ACCEPT` verdicts; no cross-pack generalization claimed |
-| P3: accepted candidate passes promotion gate | PASS WITH WARNINGS | Candidate 02 has a real `human_observed` `ACCEPT_WITH_WARNINGS` review; Candidate 01 remains alternate |
-| P4: current version changes after real human review | PRIVATE BASIC MVP PASS | Candidate 02 is current, approved by `human:local-owner`; source hash is unchanged |
-| P5: live MRMIC candidate/promoted projection | LIVE LOCAL PASS | Candidate 02 candidate/promoted resource readback and SVG render verified; ownership remained external |
+| P3: accepted candidate passes promotion gate | PASS WITH WARNINGS | Repair A has real `human_observed` `ACCEPT_WITH_WARNINGS`; Repair B and Candidate 01 remain alternates |
+| P4: current version changes after real human review | PRIVATE BASIC MVP PASS | Repair A v3 is current, approved by `human:local-owner`; original source and repair-parent hashes are unchanged |
+| P5: live MRMIC candidate/promoted projection | LIVE LOCAL PASS | Repair A candidate/promoted readback and SVG render verified; ownership remained external |
 | P6: evidence and acceptance report | PASS FOR CURRENT PARTIAL STATE | This report, runtime probe, test output, and commit history |
 
 ## Exact blockers
 
 1. The game-source research copy is privately authorized for this local experiment but is not proven `rights_clear_real`.
 
-The belt, cuff, and hand-detail warnings are a local repair backlog. They do not erase the bounded private promotion, but they prevent treating Candidate 02 as a finished game asset.
+The localized belt and cuff repair is retained. The hand adjustment remains conservative; this warning does not erase the bounded private promotion but prevents treating Repair A as a finished public game asset.
 
 ## Installed approved runtime
 
@@ -383,7 +444,7 @@ Measured external runtime storage after installation: 10.91 GiB.
 
 ## Next narrow gates
 
-1. For the private experiment, create a bounded repair version for belt metal details, cuff patterns, and hand microdetails; require a new independent evaluation and human review before replacing Candidate 02.
+1. Keep Repair A as the private experimental current version. Any further hand-only refinement must create another child candidate and repeat evaluation/human review.
 2. For strict Real MVP PASS, replace the private game-research source/reference pack with assets carrying sufficient rights evidence and rerun the same generation/evaluation/review/promotion/MRMIC path.
 3. Do not publish candidate bytes until the rights and distribution boundary is separately satisfied.
 
@@ -394,7 +455,7 @@ Measured external runtime storage after installation: 10.91 GiB.
 - One two-candidate private-pack generation/evaluation run is claimed with two automated `ACCEPT` verdicts.
 - No rights-clear user Character Remaster generation batch is claimed.
 - No identity preservation is claimed from provider receipts or fixtures.
-- Human approval is claimed only for Candidate 02 as `PRIVATE_EXPERIMENTAL_CURRENT` with repair warnings.
+- Human approval is claimed only for Repair A v3 as `PRIVATE_EXPERIMENTAL_CURRENT` with a conservative-hand warning.
 - Approved runtimes and model weights were installed only under the adjacent external runtime; no model bytes entered Git.
 - No private image was committed.
 - The public code and sanitized report are deployed to GitHub `main`; no public runtime/site or private asset deployment is claimed.
