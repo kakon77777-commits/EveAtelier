@@ -136,6 +136,18 @@ Comparison 是純衍生 projection，不成為 evidence source：
 - Existing Phase 2A HUMAN calibration / activation gate 保持唯一有效。
 - Comparison output 不是 evaluation、acceptance、promotion 或 theory truth。
 
+## 6.1 Canonical JSON and chronology boundary
+
+所有 operator-runtime contract 在驗證前先要求 canonical JSON value：
+
+- object 只能使用 own enumerable data properties，prototype 只能是 `Object.prototype` 或 `null`；
+- array 必須 dense，不能有 holes、額外 properties、symbols 或 accessors；
+- cycle、`undefined`、`NaN`、infinity、negative zero 與其他非 JSON 值拒絕；
+- `canonicalJson()` 對非 canonical input 直接 fail closed，不再把 validator 看見的 inherited/sparse state 靜默序列化成另一個值；
+- unknown key 即使名稱是空字串也必須拒絕。
+
+所有 Phase 2 operator-runtime timestamps 使用共用 `isCanonicalInstant()`：只接受完整 RFC3339 instant（`Z` 或 explicit offset），並自行驗證真實 calendar date、hour、minute、second。`Date.parse` 可正規化的不存在日期與 implementation-defined date strings 不再被接受。
+
 ## 7. Public/private boundary
 
 Tracked fixture `fixtures/operator_runtime/vusd-counterfactual.example.json` 完全使用 synthetic IDs 與 synthetic SHA-256。它不包含：
@@ -175,10 +187,10 @@ Tracked fixture `fixtures/operator_runtime/vusd-counterfactual.example.json` 完
 
 ```text
 npm run check
-checked_js=29 checked_python=true
+checked_js=31 checked_python=true
 
 npm test
-128 tests / 127 pass / 0 fail / 1 explicit live-MRMIC opt-in skip
+135 tests / 134 pass / 0 fail / 1 explicit live-MRMIC opt-in skip
 
 git diff --check
 exit 0

@@ -1,3 +1,10 @@
+import { isCanonicalInstant } from './time.js';
+import {
+  isCanonicalJsonValue,
+  isDenseJsonArray,
+  isPlainJsonObject,
+} from './json-values.js';
+
 const packFields = Object.freeze([
   'schema', 'packId', 'version', 'description', 'axes', 'locks', 'families', 'compilerRules',
 ]);
@@ -79,7 +86,7 @@ const providerParameterName = /(provider|workflow|model|prompt|backend|checkpoin
 const receiptMetadataReservedName = /(accept|approv|evaluat|verdict|promot|workbench|authority|credential|secret|token|password|path|provider|workflow|model|prompt|backend|checkpoint|lora|cfg|denoise)/i;
 
 function isObject(value) {
-  return Boolean(value) && typeof value === 'object' && !Array.isArray(value);
+  return isPlainJsonObject(value);
 }
 
 function nonEmptyString(value) {
@@ -87,7 +94,7 @@ function nonEmptyString(value) {
 }
 
 function uniqueStrings(values, { nonEmpty = false } = {}) {
-  return Array.isArray(values)
+  return isDenseJsonArray(values)
     && (!nonEmpty || values.length > 0)
     && values.every(nonEmptyString)
     && new Set(values).size === values.length;
@@ -95,6 +102,10 @@ function uniqueStrings(values, { nonEmpty = false } = {}) {
 
 function unknownKey(value, allowed) {
   return Object.keys(value).find(key => !allowed.includes(key));
+}
+
+function hasUnknownKey(value, allowed) {
+  return unknownKey(value, allowed) !== undefined;
 }
 
 function containsLocalPath(value) {
@@ -108,19 +119,15 @@ function isSha256(value) {
   return typeof value === 'string' && /^[a-f0-9]{64}$/i.test(value);
 }
 
-function validDate(value) {
-  return nonEmptyString(value) && !Number.isNaN(Date.parse(value));
-}
-
 function validatePackRef(value) {
-  if (!isObject(value) || unknownKey(value, packRefFields)) return false;
+  if (!isObject(value) || hasUnknownKey(value, packRefFields)) return false;
   return nonEmptyString(value.packId)
     && semverPattern.test(value.version ?? '')
     && isSha256(value.digest);
 }
 
 function validateOperatorRef(value) {
-  if (!isObject(value) || unknownKey(value, operatorRefFields)) return false;
+  if (!isObject(value) || hasUnknownKey(value, operatorRefFields)) return false;
   return nonEmptyString(value.operatorId)
     && value.operatorId.startsWith('visual.op.')
     && semverPattern.test(value.version ?? '');
@@ -128,14 +135,14 @@ function validateOperatorRef(value) {
 
 function validateTarget(value) {
   return isObject(value)
-    && !unknownKey(value, targetFields)
+    && !hasUnknownKey(value, targetFields)
     && nonEmptyString(value.kind)
     && nonEmptyString(value.id)
     && !containsLocalPath(value);
 }
 
 function validateAxisChange(value) {
-  if (!isObject(value) || unknownKey(value, axisChangeFields)) return false;
+  if (!isObject(value) || hasUnknownKey(value, axisChangeFields)) return false;
   if (!nonEmptyString(value.axisId)
       || !['INCREASE', 'DECREASE', 'SET'].includes(value.mode)) return false;
   if (Number.isFinite(value.value) || nonEmptyString(value.value)) return true;
@@ -146,21 +153,21 @@ function validateAxisChange(value) {
 
 function validateRequestedLock(value) {
   return isObject(value)
-    && !unknownKey(value, requestedLockFields)
+    && !hasUnknownKey(value, requestedLockFields)
     && nonEmptyString(value.lockId)
     && value.mode === 'PRESERVE';
 }
 
 function validateProvenance(value) {
   return isObject(value)
-    && !unknownKey(value, experienceProvenanceFields)
+    && !hasUnknownKey(value, experienceProvenanceFields)
     && ['AI', 'HUMAN', 'SYSTEM'].includes(value.kind)
     && nonEmptyString(value.id);
 }
 
 function validateArtifactEvidence(value) {
   return isObject(value)
-    && !unknownKey(value, artifactEvidenceFields)
+    && !hasUnknownKey(value, artifactEvidenceFields)
     && nonEmptyString(value.artifactId)
     && !containsLocalPath(value.artifactId)
     && isSha256(value.sha256);
@@ -171,7 +178,7 @@ function validateSharedDeltas(values, { nonEmpty = true } = {}) {
   const axes = new Set();
   for (const value of values) {
     if (!isObject(value)
-        || unknownKey(value, sharedDeltaFields)
+        || hasUnknownKey(value, sharedDeltaFields)
         || !nonEmptyString(value.axisId)
         || !value.axisId.startsWith('semantic.axis.')
         || !['INCREASE', 'DECREASE', 'STABLE', 'UNKNOWN'].includes(value.direction)
@@ -186,7 +193,7 @@ function validateSharedDeltas(values, { nonEmpty = true } = {}) {
 
 function validateCounterfactualIntervention(value) {
   return isObject(value)
-    && !unknownKey(value, counterfactualInterventionFields)
+    && !hasUnknownKey(value, counterfactualInterventionFields)
     && validateTarget(value.target)
     && Array.isArray(value.axisChanges)
     && value.axisChanges.length > 0
@@ -202,16 +209,16 @@ function validateCounterfactualIntervention(value) {
 function validateValueSchema(value) {
   if (!isObject(value)) return false;
   if (value.kind === 'SCALAR') {
-    return !unknownKey(value, scalarSchemaFields)
+    return !hasUnknownKey(value, scalarSchemaFields)
       && Number.isFinite(value.min)
       && Number.isFinite(value.max)
       && value.min < value.max;
   }
   if (value.kind === 'ENUM') {
-    return !unknownKey(value, enumSchemaFields) && uniqueStrings(value.values, { nonEmpty: true });
+    return !hasUnknownKey(value, enumSchemaFields) && uniqueStrings(value.values, { nonEmpty: true });
   }
   if (value.kind === 'VECTOR') {
-    return !unknownKey(value, vectorSchemaFields)
+    return !hasUnknownKey(value, vectorSchemaFields)
       && uniqueStrings(value.dimensions, { nonEmpty: true })
       && Number.isFinite(value.min)
       && Number.isFinite(value.max)
@@ -223,7 +230,7 @@ function validateValueSchema(value) {
 function validateAxis(axis) {
   if (!isObject(axis)) return 'axis_must_be_object';
   const extra = unknownKey(axis, axisFields);
-  if (extra) return `axis_field_forbidden:${extra}`;
+  if (extra !== undefined) return `axis_field_forbidden:${extra}`;
   if (!nonEmptyString(axis.axisId) || !axis.axisId.startsWith('semantic.axis.')) {
     return 'axis_id_must_be_semantic_namespace';
   }
@@ -235,7 +242,7 @@ function validateAxis(axis) {
 function validateLock(lock, axisIds) {
   if (!isObject(lock)) return 'lock_must_be_object';
   const extra = unknownKey(lock, lockFields);
-  if (extra) return `lock_field_forbidden:${extra}`;
+  if (extra !== undefined) return `lock_field_forbidden:${extra}`;
   if (!nonEmptyString(lock.lockId) || !lock.lockId.startsWith('semantic.lock.')) {
     return 'lock_id_must_be_semantic_namespace';
   }
@@ -257,7 +264,7 @@ function validateLock(lock, axisIds) {
 function validateParameter(parameter, operatorId) {
   if (!isObject(parameter)) return `operator_parameter_must_be_object:${operatorId}`;
   const extra = unknownKey(parameter, parameterFields);
-  if (extra) return `operator_parameter_field_forbidden:${operatorId}:${extra}`;
+  if (extra !== undefined) return `operator_parameter_field_forbidden:${operatorId}:${extra}`;
   if (!nonEmptyString(parameter.name)) return `operator_parameter_name_required:${operatorId}`;
   if (providerParameterName.test(parameter.name)) {
     return `operator_parameter_name_forbidden:${operatorId}:${parameter.name}`;
@@ -283,7 +290,7 @@ function validateParameter(parameter, operatorId) {
 function validateEffect(effect, axisIds) {
   if (!isObject(effect)) return 'operator_effect_must_be_object';
   const extra = unknownKey(effect, effectFields);
-  if (extra) return `operator_effect_field_forbidden:${extra}`;
+  if (extra !== undefined) return `operator_effect_field_forbidden:${extra}`;
   if (!axisIds.has(effect.axisId)) return `unknown_operator_effect_axis:${effect.axisId ?? ''}`;
   if (!['INCREASE', 'DECREASE', 'SET', 'PRESERVE', 'OBSERVE'].includes(effect.mode)) {
     return `operator_effect_mode_invalid:${effect.axisId}`;
@@ -294,7 +301,7 @@ function validateEffect(effect, axisIds) {
 function validateVariant(variant, axisIds, lockIds) {
   if (!isObject(variant)) return 'operator_variant_must_be_object';
   const extra = unknownKey(variant, variantFields);
-  if (extra) return `operator_variant_field_forbidden:${extra}`;
+  if (extra !== undefined) return `operator_variant_field_forbidden:${extra}`;
   if (!nonEmptyString(variant.operatorId) || !variant.operatorId.startsWith('visual.op.')) {
     return 'operator_id_must_be_visual_namespace';
   }
@@ -362,7 +369,7 @@ function validateVariant(variant, axisIds, lockIds) {
 function validateFamily(family, axisIds, lockIds) {
   if (!isObject(family)) return 'operator_family_must_be_object';
   const extra = unknownKey(family, familyFields);
-  if (extra) return `operator_family_field_forbidden:${extra}`;
+  if (extra !== undefined) return `operator_family_field_forbidden:${extra}`;
   if (!nonEmptyString(family.familyId) || !family.familyId.startsWith('visual.family.')) {
     return 'operator_family_id_must_be_visual_namespace';
   }
@@ -384,7 +391,7 @@ function validateFamily(family, axisIds, lockIds) {
 function validateCompilerRule(rule, axes, locks, operators) {
   if (!isObject(rule)) return 'compiler_rule_must_be_object';
   const extra = unknownKey(rule, compilerRuleFields);
-  if (extra) return `compiler_rule_field_forbidden:${extra}`;
+  if (extra !== undefined) return `compiler_rule_field_forbidden:${extra}`;
   if (!nonEmptyString(rule.ruleId) || !rule.ruleId.startsWith('compiler.rule.')) {
     return 'compiler_rule_id_must_be_compiler_namespace';
   }
@@ -415,8 +422,9 @@ function validateCompilerRule(rule, axes, locks, operators) {
 
 export function validateOperatorPack(value) {
   if (!isObject(value)) return { ok: false, reason: 'operator_pack_required' };
+  if (!isCanonicalJsonValue(value)) return { ok: false, reason: 'operator_pack_json_value_invalid' };
   const extra = unknownKey(value, packFields);
-  if (extra) return { ok: false, reason: `operator_pack_field_forbidden:${extra}` };
+  if (extra !== undefined) return { ok: false, reason: `operator_pack_field_forbidden:${extra}` };
   if (containsLocalPath(value)) return { ok: false, reason: 'operator_pack_local_path_forbidden' };
   if (value.schema !== 'eve-atelier-operator-pack/v1') {
     return { ok: false, reason: 'unsupported_operator_pack_schema' };
@@ -485,8 +493,9 @@ export function validateOperatorPack(value) {
 
 export function validateSemanticDirective(value) {
   if (!isObject(value)) return { ok: false, reason: 'semantic_directive_required' };
+  if (!isCanonicalJsonValue(value)) return { ok: false, reason: 'semantic_directive_json_value_invalid' };
   const extra = unknownKey(value, directiveFields);
-  if (extra) return { ok: false, reason: `semantic_directive_field_forbidden:${extra}` };
+  if (extra !== undefined) return { ok: false, reason: `semantic_directive_field_forbidden:${extra}` };
   if (value.schema !== 'eve-atelier-semantic-directive/v1') {
     return { ok: false, reason: 'unsupported_semantic_directive_schema' };
   }
@@ -505,14 +514,15 @@ export function validateSemanticDirective(value) {
   if (!Array.isArray(value.locks) || value.locks.some(lock => !validateRequestedLock(lock))) {
     return { ok: false, reason: 'semantic_directive_locks_invalid' };
   }
-  if (!validDate(value.requestedAt)) return { ok: false, reason: 'semantic_directive_requested_at_invalid' };
+  if (!isCanonicalInstant(value.requestedAt)) return { ok: false, reason: 'semantic_directive_requested_at_invalid' };
   return { ok: true };
 }
 
 export function validateProviderCapabilityManifest(value) {
   if (!isObject(value)) return { ok: false, reason: 'provider_capability_manifest_required' };
+  if (!isCanonicalJsonValue(value)) return { ok: false, reason: 'provider_manifest_json_value_invalid' };
   const extra = unknownKey(value, providerManifestFields);
-  if (extra) return { ok: false, reason: `provider_manifest_field_forbidden:${extra}` };
+  if (extra !== undefined) return { ok: false, reason: `provider_manifest_field_forbidden:${extra}` };
   if (containsLocalPath(value)) return { ok: false, reason: 'provider_manifest_local_path_forbidden' };
   if (value.schema !== 'eve-atelier-provider-capability/v1') {
     return { ok: false, reason: 'unsupported_provider_capability_schema' };
@@ -533,7 +543,7 @@ export function validateProviderCapabilityManifest(value) {
   for (const operator of value.operators) {
     if (!isObject(operator)) return { ok: false, reason: 'provider_operator_must_be_object' };
     const operatorExtra = unknownKey(operator, providerOperatorFields);
-    if (operatorExtra) return { ok: false, reason: `provider_operator_field_forbidden:${operatorExtra}` };
+    if (operatorExtra !== undefined) return { ok: false, reason: `provider_operator_field_forbidden:${operatorExtra}` };
     if (!nonEmptyString(operator.operatorId)
         || !operator.operatorId.startsWith('visual.op.')
         || !uniqueStrings(operator.versions, { nonEmpty: true })
@@ -559,8 +569,9 @@ export function validateProviderCapabilityManifest(value) {
 
 export function validateOperatorInvocation(value) {
   if (!isObject(value)) return { ok: false, reason: 'operator_invocation_required' };
+  if (!isCanonicalJsonValue(value)) return { ok: false, reason: 'operator_invocation_json_value_invalid' };
   const extra = unknownKey(value, invocationFields);
-  if (extra) return { ok: false, reason: `operator_invocation_field_forbidden:${extra}` };
+  if (extra !== undefined) return { ok: false, reason: `operator_invocation_field_forbidden:${extra}` };
   if (value.schema !== 'eve-atelier-operator-invocation/v1') {
     return { ok: false, reason: 'unsupported_operator_invocation_schema' };
   }
@@ -584,7 +595,7 @@ export function validateOperatorInvocation(value) {
   }
   if (!isObject(value.providerPolicy)) return { ok: false, reason: 'operator_invocation_provider_policy_required' };
   const policyExtra = unknownKey(value.providerPolicy, providerPolicyFields);
-  if (policyExtra) return { ok: false, reason: `provider_policy_field_forbidden:${policyExtra}` };
+  if (policyExtra !== undefined) return { ok: false, reason: `provider_policy_field_forbidden:${policyExtra}` };
   if (!uniqueStrings(value.providerPolicy.allowedPrivacy, { nonEmpty: true })
       || value.providerPolicy.allowedPrivacy.some(privacy => !['LOCAL', 'REMOTE_PRIVATE', 'REMOTE_PUBLIC'].includes(privacy))
       || !uniqueStrings(value.providerPolicy.requiredCapabilities)) {
@@ -595,8 +606,9 @@ export function validateOperatorInvocation(value) {
 
 export function validateExperienceEvent(value) {
   if (!isObject(value)) return { ok: false, reason: 'operator_experience_required' };
+  if (!isCanonicalJsonValue(value)) return { ok: false, reason: 'operator_experience_json_value_invalid' };
   const extra = unknownKey(value, experienceFields);
-  if (extra) return { ok: false, reason: `operator_experience_field_forbidden:${extra}` };
+  if (extra !== undefined) return { ok: false, reason: `operator_experience_field_forbidden:${extra}` };
   if (value.schema !== 'eve-atelier-operator-experience-event/v1') {
     return { ok: false, reason: 'unsupported_operator_experience_schema' };
   }
@@ -607,14 +619,14 @@ export function validateExperienceEvent(value) {
   if (!validateOperatorRef(value.operatorRef)) return { ok: false, reason: 'operator_experience_operator_ref_invalid' };
   if (value.providerRef !== undefined) {
     if (!isObject(value.providerRef)
-        || unknownKey(value.providerRef, providerRefFields)
+        || hasUnknownKey(value.providerRef, providerRefFields)
         || !nonEmptyString(value.providerRef.providerId)
         || !nonEmptyString(value.providerRef.providerVersion)) {
       return { ok: false, reason: 'operator_experience_provider_ref_invalid' };
     }
   }
   if (!isObject(value.semanticContext)
-      || unknownKey(value.semanticContext, semanticContextFields)
+      || hasUnknownKey(value.semanticContext, semanticContextFields)
       || !Array.isArray(value.semanticContext.axisChanges)
       || value.semanticContext.axisChanges.some(change => !validateAxisChange(change))
       || !uniqueStrings(value.semanticContext.lockIds)) {
@@ -648,7 +660,7 @@ export function validateExperienceEvent(value) {
     return { ok: false, reason: 'operator_experience_evidence_class_invalid' };
   }
   if (!isObject(value.provenance)
-      || unknownKey(value.provenance, experienceProvenanceFields)
+      || hasUnknownKey(value.provenance, experienceProvenanceFields)
       || !['RUNTIME', 'AI', 'HUMAN', 'SYSTEM'].includes(value.provenance.kind)
       || !nonEmptyString(value.provenance.id)) {
     return { ok: false, reason: 'operator_experience_provenance_invalid' };
@@ -662,14 +674,17 @@ export function validateExperienceEvent(value) {
   if (!allowedEvidence[value.provenance.kind].includes(value.evidenceClass)) {
     return { ok: false, reason: `operator_experience_evidence_overclaim:${value.provenance.kind}` };
   }
-  if (!validDate(value.occurredAt)) return { ok: false, reason: 'operator_experience_occurred_at_invalid' };
+  if (!isCanonicalInstant(value.occurredAt)) return { ok: false, reason: 'operator_experience_occurred_at_invalid' };
   return { ok: true };
 }
 
 export function validateCounterfactualPrediction(value) {
   if (!isObject(value)) return { ok: false, reason: 'counterfactual_prediction_required' };
+  if (!isCanonicalJsonValue(value)) {
+    return { ok: false, reason: 'counterfactual_prediction_json_value_invalid' };
+  }
   const extra = unknownKey(value, counterfactualPredictionFields);
-  if (extra) return { ok: false, reason: `counterfactual_prediction_field_forbidden:${extra}` };
+  if (extra !== undefined) return { ok: false, reason: `counterfactual_prediction_field_forbidden:${extra}` };
   if (containsLocalPath(value)) {
     return { ok: false, reason: 'counterfactual_prediction_local_path_forbidden' };
   }
@@ -717,7 +732,7 @@ export function validateCounterfactualPrediction(value) {
       reason: `counterfactual_prediction_evidence_overclaim:${value.provenance.kind}`,
     };
   }
-  if (!validDate(value.recordedAt)) {
+  if (!isCanonicalInstant(value.recordedAt)) {
     return { ok: false, reason: 'counterfactual_prediction_recorded_at_invalid' };
   }
   return { ok: true };
@@ -725,8 +740,11 @@ export function validateCounterfactualPrediction(value) {
 
 export function validateCounterfactualObservation(value) {
   if (!isObject(value)) return { ok: false, reason: 'counterfactual_observation_required' };
+  if (!isCanonicalJsonValue(value)) {
+    return { ok: false, reason: 'counterfactual_observation_json_value_invalid' };
+  }
   const extra = unknownKey(value, counterfactualObservationFields);
-  if (extra) return { ok: false, reason: `counterfactual_observation_field_forbidden:${extra}` };
+  if (extra !== undefined) return { ok: false, reason: `counterfactual_observation_field_forbidden:${extra}` };
   if (containsLocalPath(value)) {
     return { ok: false, reason: 'counterfactual_observation_local_path_forbidden' };
   }
@@ -769,7 +787,7 @@ export function validateCounterfactualObservation(value) {
       reason: `counterfactual_observation_evidence_overclaim:${value.provenance.kind}`,
     };
   }
-  if (!validDate(value.recordedAt)) {
+  if (!isCanonicalInstant(value.recordedAt)) {
     return { ok: false, reason: 'counterfactual_observation_recorded_at_invalid' };
   }
   return { ok: true };
@@ -777,8 +795,9 @@ export function validateCounterfactualObservation(value) {
 
 export function validateOperatorProposal(value) {
   if (!isObject(value)) return { ok: false, reason: 'operator_proposal_required' };
+  if (!isCanonicalJsonValue(value)) return { ok: false, reason: 'operator_proposal_json_value_invalid' };
   const extra = unknownKey(value, operatorProposalFields);
-  if (extra) return { ok: false, reason: `operator_proposal_field_forbidden:${extra}` };
+  if (extra !== undefined) return { ok: false, reason: `operator_proposal_field_forbidden:${extra}` };
   if (containsLocalPath(value)) return { ok: false, reason: 'operator_proposal_local_path_forbidden' };
   if (value.schema !== 'eve-atelier-operator-proposal/v1') {
     return { ok: false, reason: 'unsupported_operator_proposal_schema' };
@@ -788,7 +807,7 @@ export function validateOperatorProposal(value) {
   if (!validateOperatorRef(value.proposedOperatorRef)) {
     return { ok: false, reason: 'operator_proposal_operator_ref_invalid' };
   }
-  if (!isObject(value.decomposition) || unknownKey(value.decomposition, decompositionFields)
+  if (!isObject(value.decomposition) || hasUnknownKey(value.decomposition, decompositionFields)
       || !['COMPOSITE', 'PRIMITIVE_CANDIDATE'].includes(value.decomposition.kind)
       || !Array.isArray(value.decomposition.componentOperatorRefs)
       || value.decomposition.componentOperatorRefs.some(ref => !validateOperatorRef(ref))) {
@@ -815,7 +834,7 @@ export function validateOperatorProposal(value) {
   if (!validateProvenance(value.provenance)) {
     return { ok: false, reason: 'operator_proposal_provenance_invalid' };
   }
-  if (!validDate(value.recordedAt)) {
+  if (!isCanonicalInstant(value.recordedAt)) {
     return { ok: false, reason: 'operator_proposal_recorded_at_invalid' };
   }
   return { ok: true };

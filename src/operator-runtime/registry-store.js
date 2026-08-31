@@ -7,23 +7,24 @@ import {
   validateProviderCapabilityManifest,
 } from './contracts.js';
 import { valueMatchesSchema } from './semantic-values.js';
+import { isCanonicalInstant } from './time.js';
+import {
+  isCanonicalJsonValue,
+  isDenseJsonArray,
+  isPlainJsonObject,
+} from './json-values.js';
 import { VusdEvidenceStore } from './vusd-evidence-store.js';
 
 function validActor(value) {
-  return value
-    && typeof value === 'object'
-    && !Array.isArray(value)
+  return exactFields(value, actorFields)
+    && isCanonicalJsonValue(value)
     && ['HUMAN', 'AI', 'SYSTEM'].includes(value.kind)
     && typeof value.id === 'string'
     && value.id.trim().length > 0;
 }
 
-function validDate(value) {
-  return typeof value === 'string' && !Number.isNaN(Date.parse(value));
-}
-
 function isObject(value) {
-  return Boolean(value) && typeof value === 'object' && !Array.isArray(value);
+  return isPlainJsonObject(value);
 }
 
 function exactFields(value, fields) {
@@ -31,7 +32,7 @@ function exactFields(value, fields) {
 }
 
 function nonEmptyUniqueStrings(value) {
-  return Array.isArray(value)
+  return isDenseJsonArray(value)
     && value.length > 0
     && value.every(item => typeof item === 'string' && item.trim().length > 0)
     && new Set(value).size === value.length;
@@ -159,7 +160,7 @@ export class OperatorRegistryStore {
     const validation = validateOperatorPack(pack);
     if (!validation.ok) throw new Error(validation.reason);
     if (!validActor(proposer)) throw new Error('operator_pack_proposer_invalid');
-    if (!validDate(registeredAt)) throw new Error('operator_pack_registered_at_invalid');
+    if (!isCanonicalInstant(registeredAt)) throw new Error('operator_pack_registered_at_invalid');
 
     const digest = digestDefinition(pack);
     const existing = this.#database.prepare(`
@@ -206,13 +207,15 @@ export class OperatorRegistryStore {
   }
 
   appendLifecycleEvent(event) {
-    if (!exactFields(event, lifecycleFields)) throw new Error('lifecycle_event_invalid');
+    if (!exactFields(event, lifecycleFields) || !isCanonicalJsonValue(event)) {
+      throw new Error('lifecycle_event_invalid');
+    }
     if (event.schema !== 'eve-atelier-operator-lifecycle-event/v1'
         || typeof event.eventId !== 'string'
         || event.eventId.trim().length === 0
         || !exactFields(event.packRef, packRefFields)
         || !validActor(event.actor)
-        || !validDate(event.createdAt)) {
+        || !isCanonicalInstant(event.createdAt)) {
       throw new Error('lifecycle_event_invalid');
     }
     if (!nonEmptyUniqueStrings(event.evidenceRefs)) throw new Error('lifecycle_evidence_required');
@@ -355,7 +358,7 @@ export class OperatorRegistryStore {
   beginRuntimeExperience({ invocation, providerManifest, inputSha256, occurredAt } = {}) {
     const invocationValidation = validateOperatorInvocation(invocation);
     if (!invocationValidation.ok) throw new Error(invocationValidation.reason);
-    if (!/^[a-f0-9]{64}$/i.test(inputSha256 ?? '') || !validDate(occurredAt)) {
+    if (!/^[a-f0-9]{64}$/i.test(inputSha256 ?? '') || !isCanonicalInstant(occurredAt)) {
       throw new Error('runtime_experience_preparation_invalid');
     }
     const pack = this.getPack(invocation.packRef);

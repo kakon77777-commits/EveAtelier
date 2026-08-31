@@ -133,6 +133,30 @@ test('keeps lifecycle transitions append-only, evidence-gated, and human-authori
   }
 });
 
+test('rejects actor shapes whose extra or inherited fields would be discarded on persistence', () => {
+  const store = new OperatorRegistryStore({ path: ':memory:' });
+  try {
+    const proposer = humanActor();
+    proposer[''] = 'forbidden';
+    assert.throws(() => store.registerPack({
+      pack: validPack(),
+      proposer,
+      registeredAt: '2026-08-31T21:10:00+08:00',
+    }), /operator_pack_proposer_invalid/);
+
+    const ref = register(store);
+    const event = lifecycleEvent(ref, {
+      eventId: 'lifecycle:actor-shape',
+      fromStatus: 'DRAFT',
+      toStatus: 'EXPERIMENTAL_UNCALIBRATED',
+    });
+    event.actor[''] = 'forbidden';
+    assert.throws(() => store.appendLifecycleEvent(event), /lifecycle_event_invalid/);
+  } finally {
+    store.close();
+  }
+});
+
 test('stores exact experience evidence and makes every registry table append-only', async () => {
   const directory = await mkdtemp(join(tmpdir(), 'eve-operator-append-only-'));
   const databasePath = join(directory, 'registry.sqlite');

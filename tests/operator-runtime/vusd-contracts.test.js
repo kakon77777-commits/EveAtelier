@@ -166,3 +166,19 @@ test('rejects stronger evidence classes when the record declares AI provenance',
     reason: 'operator_proposal_primitive_components_forbidden',
   });
 });
+
+test('rejects empty-string unknown keys at top-level and nested contract boundaries', () => {
+  const topLevel = validPrediction();
+  topLevel[''] = 'forbidden';
+  assert.deepEqual(validateCounterfactualPrediction(topLevel), {
+    ok: false,
+    reason: 'counterfactual_prediction_field_forbidden:',
+  });
+
+  const nested = validPrediction();
+  nested.intervention[''] = 'forbidden';
+  assert.deepEqual(validateCounterfactualPrediction(nested), {
+    ok: false,
+    reason: 'counterfactual_prediction_intervention_invalid',
+  });
+});
