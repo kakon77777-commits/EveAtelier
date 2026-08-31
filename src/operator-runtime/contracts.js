@@ -13,7 +13,7 @@ const familyFields = Object.freeze([
 ]);
 const variantFields = Object.freeze([
   'operatorId', 'version', 'description', 'executionMode', 'inputKinds', 'outputKinds',
-  'parameterSchema', 'effects', 'requiredLockIds', 'requiredCapabilities', 'locality',
+  'parameterSchema', 'receiptMetadataSchema', 'effects', 'requiredLockIds', 'requiredCapabilities', 'locality',
   'determinism', 'reversibility', 'authority',
 ]);
 const parameterFields = Object.freeze(['name', 'kind', 'required', 'min', 'max']);
@@ -41,14 +41,15 @@ const providerOperatorFields = Object.freeze([
 const providerPolicyFields = Object.freeze(['allowedPrivacy', 'requiredCapabilities']);
 const invocationFields = Object.freeze([
   'schema', 'operationId', 'packRef', 'operatorRef', 'target', 'expectedRevision',
-  'input', 'output', 'params', 'providerPolicy',
+  'inputArtifactId', 'outputArtifactId', 'input', 'output', 'params', 'providerPolicy',
 ]);
 const providerRefFields = Object.freeze(['providerId', 'providerVersion']);
 const semanticContextFields = Object.freeze(['axisChanges', 'lockIds']);
+const experienceProvenanceFields = Object.freeze(['kind', 'id']);
 const experienceFields = Object.freeze([
-  'schema', 'eventId', 'packRef', 'operatorRef', 'providerRef', 'semanticContext',
+  'schema', 'eventId', 'operationId', 'packRef', 'operatorRef', 'providerRef', 'semanticContext',
   'inputHashes', 'outputHashes', 'outcome', 'evaluationRefs', 'humanPreferenceRef',
-  'evidenceClass', 'occurredAt',
+  'evidenceClass', 'provenance', 'failureClass', 'occurredAt',
 ]);
 
 const semverPattern = /^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$/;
@@ -107,7 +108,8 @@ function validateTarget(value) {
   return isObject(value)
     && !unknownKey(value, targetFields)
     && nonEmptyString(value.kind)
-    && nonEmptyString(value.id);
+    && nonEmptyString(value.id)
+    && !containsLocalPath(value);
 }
 
 function validateAxisChange(value) {
@@ -247,6 +249,18 @@ function validateVariant(variant, axisIds, lockIds) {
     }
     parameterNames.add(parameter.name);
   }
+  if (!Array.isArray(variant.receiptMetadataSchema)) {
+    return `operator_receipt_metadata_schema_required:${variant.operatorId}`;
+  }
+  const metadataNames = new Set();
+  for (const metadata of variant.receiptMetadataSchema) {
+    const failure = validateParameter(metadata, variant.operatorId);
+    if (failure) return failure.replace('operator_parameter', 'operator_receipt_metadata');
+    if (metadataNames.has(metadata.name)) {
+      return `duplicate_operator_receipt_metadata:${variant.operatorId}:${metadata.name}`;
+    }
+    metadataNames.add(metadata.name);
+  }
   if (!Array.isArray(variant.effects)) return `operator_effects_required:${variant.operatorId}`;
   for (const effect of variant.effects) {
     const failure = validateEffect(effect, axisIds);
@@ -381,12 +395,17 @@ export function validateOperatorPack(value) {
   }
 
   const ruleRefs = new Set();
+  const compilerSources = new Set();
   for (const rule of value.compilerRules) {
     const failure = validateCompilerRule(rule, axisIds, lockIds, operators);
     if (failure) return { ok: false, reason: failure };
     const ruleRef = `${rule.ruleId}@${rule.version}`;
     if (ruleRefs.has(ruleRef)) return { ok: false, reason: `duplicate_compiler_rule:${ruleRef}` };
+    if (compilerSources.has(rule.sourceOperatorId)) {
+      return { ok: false, reason: `duplicate_compiler_source_operator:${rule.sourceOperatorId}` };
+    }
     ruleRefs.add(ruleRef);
+    compilerSources.add(rule.sourceOperatorId);
   }
   return { ok: true };
 }
@@ -479,7 +498,15 @@ export function validateOperatorInvocation(value) {
   if (!Number.isInteger(value.expectedRevision) || value.expectedRevision < 0) {
     return { ok: false, reason: 'operator_invocation_expected_revision_invalid' };
   }
-  if (!nonEmptyString(value.input) || !nonEmptyString(value.output) || !isObject(value.params)) {
+  if (!nonEmptyString(value.inputArtifactId)
+      || !nonEmptyString(value.outputArtifactId)
+      || value.inputArtifactId === value.outputArtifactId
+      || containsLocalPath([value.inputArtifactId, value.outputArtifactId])) {
+    return { ok: false, reason: 'operator_invocation_artifact_id_invalid' };
+  }
+  if (!nonEmptyString(value.input)
+      || !nonEmptyString(value.output)
+      || !isObject(value.params)) {
     return { ok: false, reason: 'operator_invocation_io_params_invalid' };
   }
   if (!isObject(value.providerPolicy)) return { ok: false, reason: 'operator_invocation_provider_policy_required' };
@@ -500,7 +527,9 @@ export function validateExperienceEvent(value) {
   if (value.schema !== 'eve-atelier-operator-experience-event/v1') {
     return { ok: false, reason: 'unsupported_operator_experience_schema' };
   }
-  if (!nonEmptyString(value.eventId)) return { ok: false, reason: 'operator_experience_id_required' };
+  if (!nonEmptyString(value.eventId) || !nonEmptyString(value.operationId)) {
+    return { ok: false, reason: 'operator_experience_identity_required' };
+  }
   if (!validatePackRef(value.packRef)) return { ok: false, reason: 'operator_experience_pack_ref_invalid' };
   if (!validateOperatorRef(value.operatorRef)) return { ok: false, reason: 'operator_experience_operator_ref_invalid' };
   if (value.providerRef !== undefined) {
@@ -519,13 +548,24 @@ export function validateExperienceEvent(value) {
     return { ok: false, reason: 'operator_experience_semantic_context_invalid' };
   }
   if (!Array.isArray(value.inputHashes)
+      || value.inputHashes.length === 0
       || value.inputHashes.some(hash => !isSha256(hash))
       || !Array.isArray(value.outputHashes)
       || value.outputHashes.some(hash => !isSha256(hash))) {
     return { ok: false, reason: 'operator_experience_artifact_hashes_invalid' };
   }
-  if (!['COMPLETED', 'FAILED', 'UNVERIFIED'].includes(value.outcome)) {
+  if (!['PREPARED', 'COMPLETED', 'FAILED', 'UNVERIFIED'].includes(value.outcome)) {
     return { ok: false, reason: 'operator_experience_outcome_invalid' };
+  }
+  if (value.outcome === 'COMPLETED' && value.outputHashes.length === 0) {
+    return { ok: false, reason: 'operator_experience_completed_output_required' };
+  }
+  if (value.outcome === 'FAILED') {
+    if (!nonEmptyString(value.failureClass)) {
+      return { ok: false, reason: 'operator_experience_failure_class_required' };
+    }
+  } else if (value.failureClass !== undefined) {
+    return { ok: false, reason: 'operator_experience_failure_class_forbidden' };
   }
   if (!uniqueStrings(value.evaluationRefs)
       || (value.humanPreferenceRef !== undefined && !nonEmptyString(value.humanPreferenceRef))) {
@@ -533,6 +573,21 @@ export function validateExperienceEvent(value) {
   }
   if (!['PRODUCTION_OBSERVED', 'RIGHTS_CLEAR_REAL', 'PRIVATE_RESEARCH_AUTHORIZED', 'HUMAN_OBSERVED', 'CONTRACT_TESTED', 'FIXTURE'].includes(value.evidenceClass)) {
     return { ok: false, reason: 'operator_experience_evidence_class_invalid' };
+  }
+  if (!isObject(value.provenance)
+      || unknownKey(value.provenance, experienceProvenanceFields)
+      || !['RUNTIME', 'AI', 'HUMAN', 'SYSTEM'].includes(value.provenance.kind)
+      || !nonEmptyString(value.provenance.id)) {
+    return { ok: false, reason: 'operator_experience_provenance_invalid' };
+  }
+  const allowedEvidence = {
+    RUNTIME: ['CONTRACT_TESTED'],
+    AI: ['FIXTURE', 'CONTRACT_TESTED'],
+    HUMAN: ['FIXTURE', 'CONTRACT_TESTED', 'HUMAN_OBSERVED'],
+    SYSTEM: ['FIXTURE', 'CONTRACT_TESTED'],
+  };
+  if (!allowedEvidence[value.provenance.kind].includes(value.evidenceClass)) {
+    return { ok: false, reason: `operator_experience_evidence_overclaim:${value.provenance.kind}` };
   }
   if (!validDate(value.occurredAt)) return { ok: false, reason: 'operator_experience_occurred_at_invalid' };
   return { ok: true };

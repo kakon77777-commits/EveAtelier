@@ -2,7 +2,7 @@
 
 日期：2026-08-31
 
-狀態：`IMPLEMENTED_CANDIDATE / REVIEW_PENDING / PHASE_2A`
+狀態：`IMPLEMENTED_CANDIDATE / RE-REVIEW_PENDING / PHASE_2A`
 
 ## 1. 目標
 
@@ -141,6 +141,7 @@ operatorId / version
 executionMode = COMPILE_ONLY | PROVIDER_BOUND
 inputKinds / outputKinds
 parameterSchema
+receiptMetadataSchema
 effects
 requiredLockIds
 requiredCapabilities
@@ -151,6 +152,8 @@ authority
 ```
 
 `parameterSchema` 是 canonical operator parameter schema，不得包含 provider、workflow、model、prompt 或 backend 欄位。Provider-specific compilation 留在 provider adapter。
+
+`receiptMetadataSchema` 定義可回到 canonical receipt 的 provider-neutral metadata；未知欄位、authority 欄位與 private path 一律拒絕。
 
 `authority` 第一版只允許：
 
@@ -268,7 +271,7 @@ evidence class
 occurred_at
 ```
 
-三張表都建立 SQLite trigger，拒絕 `UPDATE` 與 `DELETE`。圖片 bytes、credentials 與 provider payload 不進資料庫。
+三張表都建立 SQLite trigger，拒絕 `UPDATE`、`DELETE` 與 `INSERT OR REPLACE`。Database handle 不暴露為 public API；圖片 bytes、credentials 與 provider payload 不進資料庫。
 
 ## 9. Capability Matching / Execution
 
@@ -304,8 +307,10 @@ stable rank:
 - `PROVIDER_BOUND` operator；
 - parameter schema 完整且無未知欄位；
 - capability manifest 與 provider object identity 相符。
+- caller 提供可驗證、帶 evidence ref 的 revision guard；
+- output path 在 dispatch 前不存在。
 
-Runtime 產生 Provider Receipt，但不做 evaluation、acceptance 或 Workbench promotion。
+Runtime 傳給 provider exact operation ID、pack digest、operator version 與 logical artifact IDs；provider result 必須逐項回證並提供與實際 bytes 相符的 output SHA-256。Receipt 只公開 logical artifact ID/hash 與 allowlisted metadata，不公開本機 path。Runtime 先寫 `PREPARED` experience；完成或失敗後再 append `COMPLETED` / `FAILED`，但不做 evaluation、acceptance 或 Workbench promotion。
 
 第一個真實綠色控制使用既有 `PillowRasterProvider` 執行 `visual.op.raster.resize`。
 
@@ -361,10 +366,15 @@ Phase 2A 只保留 pack/digest/plan identity，尚不建立完整 seed registry�
 - unknown axis/lock/operator；
 - same version different digest；
 - invalid lifecycle transition；
+- SQLite REPLACE / UPDATE / DELETE；
 - AI self-activation；
 - missing calibration evidence；
 - uncalibrated semantic plan execution；
 - provider mismatch/unavailable；
+- missing/stale revision evidence；
+- pre-existing or missing output；
+- provider operation/pack/operator-version/output-hash mismatch；
+- unknown receipt/metadata authority or private-path fields；
 - provider-specific field in canonical pack；
 - parameter type/range mismatch；
 - stale `expectedRevision`（由未來 Workbench transaction consumer 驗證；Phase 2A 不偽造通過）；
@@ -404,10 +414,13 @@ Phase 2A 完成需同時成立：
 - exact-field dynamic pack、directive、capability、invocation 與 experience contracts；
 - canonical JSON SHA-256 pack identity；
 - immutable same-version conflict gate；
-- append-only `operator_packs`、`registry_events`、`experience_events` 與 anti-update/delete triggers；
+- append-only `operator_packs`、`registry_events`、`experience_events` 與 anti-update/delete/replace triggers；
 - AI lifecycle transition rejection與 HUMAN calibration/activation gate；
 - DRAFT / EXPERIMENTAL_UNCALIBRATED / CALIBRATED / ACTIVE / DEPRECATED plan projection；
-- provider capability hard filtering與 stable ranking；
+- provider capability hard filtering、validated runtime-manifest binding與 stable ranking；
+- exact revision、operation、pack、operator-version、artifact identity 與 output-hash attestation；
+- path-free receipt projection與 data-defined receipt metadata allowlist；
+- append-only PREPARED / COMPLETED / FAILED execution evidence；
 - ACTIVE `visual.op.raster.resize` 經 registry 與 Pillow provider 真實執行；
 - SHA-bound experience event，且 receipt 無 acceptance / promotion 欄位。
 
@@ -415,10 +428,10 @@ Candidate verification：
 
 ```text
 npm run check
-checked_js=27 checked_python=true
+checked_js=28 checked_python=true
 
 npm test
-112 tests / 111 pass / 0 fail / 1 explicit live-MRMIC opt-in skip
+119 tests / 118 pass / 0 fail / 1 explicit live-MRMIC opt-in skip
 ```
 
 仍不主張：

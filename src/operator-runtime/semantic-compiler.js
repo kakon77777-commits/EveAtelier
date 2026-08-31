@@ -1,4 +1,5 @@
 import { validateSemanticDirective } from './contracts.js';
+import { valueMatchesSchema } from './semantic-values.js';
 
 function allOperators(pack) {
   return pack.families.flatMap(family => family.variants);
@@ -19,20 +20,6 @@ function planState(status) {
     return { status: 'BLOCKED', executable: false, blockers: ['operator_pack_deprecated'] };
   }
   return { status: 'BLOCKED', executable: false, blockers: ['operator_pack_draft'] };
-}
-
-function valueMatchesSchema(value, schema) {
-  if (schema.kind === 'SCALAR') {
-    return Number.isFinite(value) && value >= schema.min && value <= schema.max;
-  }
-  if (schema.kind === 'ENUM') return typeof value === 'string' && schema.values.includes(value);
-  if (!value || typeof value !== 'object' || Array.isArray(value)) return false;
-  const keys = Object.keys(value);
-  return keys.length === schema.dimensions.length
-    && keys.every(key => schema.dimensions.includes(key))
-    && Object.values(value).every(item => (
-      Number.isFinite(item) && item >= schema.min && item <= schema.max
-    ));
 }
 
 function validateDirectiveAgainstPack({ directive, pack, semanticOperator, rule }) {

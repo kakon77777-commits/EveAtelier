@@ -7,6 +7,7 @@ function semanticVariant() {
     inputKinds: ['art.document'],
     outputKinds: ['operator.plan'],
     parameterSchema: [],
+    receiptMetadataSchema: [],
     effects: [{ axisId: 'semantic.axis.example.intensity', mode: 'SET' }],
     requiredLockIds: ['semantic.lock.example.identity'],
     requiredCapabilities: [],
@@ -26,6 +27,7 @@ function generationVariant() {
     inputKinds: ['raster.image'],
     outputKinds: ['raster.image'],
     parameterSchema: [],
+    receiptMetadataSchema: [],
     effects: [],
     requiredLockIds: [],
     requiredCapabilities: ['generative.variation'],
@@ -45,6 +47,10 @@ function resizeVariant() {
     inputKinds: ['raster.image'],
     outputKinds: ['raster.image'],
     parameterSchema: [
+      { name: 'width', kind: 'INTEGER', required: true, min: 1, max: 16384 },
+      { name: 'height', kind: 'INTEGER', required: true, min: 1, max: 16384 },
+    ],
+    receiptMetadataSchema: [
       { name: 'width', kind: 'INTEGER', required: true, min: 1, max: 16384 },
       { name: 'height', kind: 'INTEGER', required: true, min: 1, max: 16384 },
     ],
@@ -181,6 +187,8 @@ export function validInvocation() {
     },
     target: { kind: 'art.document', id: 'document:example:001' },
     expectedRevision: 3,
+    inputArtifactId: 'artifact:example:source',
+    outputArtifactId: 'artifact:example:resized',
     input: 'source.png',
     output: 'resized.png',
     params: { width: 4, height: 5 },
@@ -195,6 +203,7 @@ export function validExperienceEvent() {
   return {
     schema: 'eve-atelier-operator-experience-event/v1',
     eventId: 'experience:example:001',
+    operationId: 'operation:resize:001',
     packRef: validPackRef(),
     operatorRef: {
       operatorId: 'visual.op.raster.resize',
@@ -213,6 +222,10 @@ export function validExperienceEvent() {
     outcome: 'COMPLETED',
     evaluationRefs: ['evaluation:example:001'],
     evidenceClass: 'CONTRACT_TESTED',
+    provenance: {
+      kind: 'RUNTIME',
+      id: 'operator-runtime:v1',
+    },
     occurredAt: '2026-08-31T21:01:00+08:00',
   };
 }

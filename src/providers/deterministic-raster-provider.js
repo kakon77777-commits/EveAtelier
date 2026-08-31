@@ -1,4 +1,6 @@
 import { spawnSync } from 'node:child_process';
+import { createHash } from 'node:crypto';
+import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 
 export class SharpRasterProvider {
@@ -45,8 +47,14 @@ export class PillowRasterProvider {
     return {
       providerId: this.providerId,
       providerVersion: this.providerVersion,
+      operationId: request.operationId,
+      packRef: request.packRef === undefined ? undefined : structuredClone(request.packRef),
+      operatorRef: request.operatorRef === undefined ? undefined : structuredClone(request.operatorRef),
       operatorId: request.operatorId,
+      inputArtifactId: request.inputArtifactId,
+      outputArtifactId: request.outputArtifactId,
       output: request.output,
+      outputSha256: createHash('sha256').update(readFileSync(request.output)).digest('hex'),
       metadata: payload.metadata,
     };
   }

@@ -1,6 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { mkdtemp } from 'node:fs/promises';
+import { copyFileSync, readFileSync } from 'node:fs';
+import { createHash } from 'node:crypto';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { spawnSync } from 'node:child_process';
@@ -27,6 +29,14 @@ function fixture(path) {
     encoding: 'utf8',
   });
   assert.equal(result.status, 0, result.stderr);
+}
+
+function verifiedRevisionGuard() {
+  return { ok: true, evidenceRef: 'revision-check:example:verified' };
+}
+
+function fileHash(path) {
+  return createHash('sha256').update(readFileSync(path)).digest('hex');
 }
 
 function activeStore() {
@@ -107,6 +117,10 @@ test('executes an ACTIVE provider-bound resize and records receipt evidence with
       providers: [provider],
       invocation,
       now: () => '2026-08-31T21:40:00+08:00',
+      revisionGuard: ({ target, expectedRevision }) => ({
+        ok: target.id === invocation.target.id && expectedRevision === 3,
+        evidenceRef: 'revision-check:example:001',
+      }),
     });
 
     assert.equal(receipt.status, 'completed');
@@ -117,13 +131,104 @@ test('executes an ACTIVE provider-bound resize and records receipt evidence with
       providerVersion: '0.1',
     });
     assert.deepEqual(receipt.metadata, { width: 4, height: 5 });
+    assert.deepEqual(receipt.inputArtifacts, [{
+      artifactId: invocation.inputArtifactId,
+      sha256: fileHash(input),
+    }]);
+    assert.deepEqual(receipt.outputArtifacts, [{
+      artifactId: invocation.outputArtifactId,
+      sha256: fileHash(output),
+    }]);
+    assert.equal('inputRefs' in receipt, false);
+    assert.equal('outputRefs' in receipt, false);
+    assert.doesNotMatch(JSON.stringify(receipt), /eve-operator-runtime-|source\.png|resized\.png/);
+    assert.deepEqual(receipt.revisionValidation, {
+      status: 'VERIFIED',
+      evidenceRef: 'revision-check:example:001',
+    });
     assert.equal('acceptance' in receipt, false);
     assert.equal('promotion' in receipt, false);
     const experiences = store.listExperience({ operatorId: 'visual.op.raster.resize' });
-    assert.equal(experiences.length, 1);
-    assert.equal(experiences[0].outcome, 'COMPLETED');
+    assert.deepEqual(experiences.map(event => event.outcome), ['PREPARED', 'COMPLETED']);
     assert.equal(experiences[0].inputHashes.length, 1);
-    assert.equal(experiences[0].outputHashes.length, 1);
+    assert.equal(experiences[0].outputHashes.length, 0);
+    assert.equal(experiences[1].outputHashes.length, 1);
+    assert.ok(experiences.every(event => event.evidenceClass === 'CONTRACT_TESTED'));
+  } finally {
+    store.close();
+  }
+});
+
+test('requires a revision guard and rejects stale targets before provider execution', async () => {
+  const { store, ref } = activeStore();
+  let calls = 0;
+  const provider = {
+    providerId: 'provider:pillow-reference',
+    providerVersion: '0.1',
+    async execute() {
+      calls += 1;
+      throw new Error('provider_should_not_run');
+    },
+  };
+  try {
+    const invocation = validInvocation();
+    invocation.packRef = { packId: ref.packId, version: ref.version, digest: ref.digest };
+    await assert.rejects(() => executeInvocation({
+      store,
+      manifests: [validProviderManifest()],
+      providers: [provider],
+      invocation,
+    }), /revision_guard_required/);
+    await assert.rejects(() => executeInvocation({
+      store,
+      manifests: [validProviderManifest()],
+      providers: [provider],
+      invocation,
+      revisionGuard: () => ({ ok: false, reason: 'stale_revision' }),
+    }), /stale_revision/);
+    assert.equal(calls, 0);
+    assert.deepEqual(store.listExperience({ operatorId: invocation.operatorRef.operatorId }), []);
+  } finally {
+    store.close();
+  }
+});
+
+test('rejects a pre-existing output before a provider can attest stale bytes as new work', async () => {
+  const directory = await mkdtemp(join(tmpdir(), 'eve-operator-stale-output-'));
+  const input = join(directory, 'source.png');
+  const output = join(directory, 'stale-output.png');
+  fixture(input);
+  fixture(output);
+  const { store, ref } = activeStore();
+  let calls = 0;
+  const provider = {
+    providerId: 'provider:pillow-reference',
+    providerVersion: '0.1',
+    async execute(request) {
+      calls += 1;
+      return {
+        providerId: this.providerId,
+        providerVersion: this.providerVersion,
+        operatorId: request.operatorId,
+        output: request.output,
+        metadata: { width: 4, height: 5 },
+      };
+    },
+  };
+  try {
+    const invocation = validInvocation();
+    invocation.packRef = { packId: ref.packId, version: ref.version, digest: ref.digest };
+    invocation.input = input;
+    invocation.output = output;
+    await assert.rejects(() => executeInvocation({
+      store,
+      manifests: [validProviderManifest()],
+      providers: [provider],
+      invocation,
+      revisionGuard: verifiedRevisionGuard,
+    }), /operator_output_must_not_exist/);
+    assert.equal(calls, 0);
+    assert.deepEqual(store.listExperience({ operatorId: invocation.operatorRef.operatorId }), []);
   } finally {
     store.close();
   }
@@ -192,6 +297,7 @@ test('rejects inactive packs, compile-only operators, and invalid canonical para
         manifests: [validProviderManifest()],
         providers: [],
         invocation,
+        revisionGuard: verifiedRevisionGuard,
       }), expected, name);
     } finally {
       store.close();
@@ -200,6 +306,9 @@ test('rejects inactive packs, compile-only operators, and invalid canonical para
 });
 
 test('rejects provider binding and receipt identity mismatches before recording evidence', async () => {
+  const directory = await mkdtemp(join(tmpdir(), 'eve-operator-provider-mismatch-'));
+  const input = join(directory, 'source.png');
+  fixture(input);
   const cases = [
     [
       'missing provider object',
@@ -228,15 +337,159 @@ test('rejects provider binding and receipt identity mismatches before recording 
     try {
       const invocation = validInvocation();
       invocation.packRef = { packId: ref.packId, version: ref.version, digest: ref.digest };
+      invocation.input = input;
+      invocation.output = join(directory, `output-${name.replaceAll(' ', '-')}.png`);
       await assert.rejects(() => executeInvocation({
         store,
         manifests: [validProviderManifest()],
         providers,
         invocation,
+        revisionGuard: verifiedRevisionGuard,
       }), expected, name);
-      assert.deepEqual(store.listExperience({ operatorId: invocation.operatorRef.operatorId }), []);
+      const experiences = store.listExperience({ operatorId: invocation.operatorRef.operatorId });
+      if (name === 'missing provider object') {
+        assert.deepEqual(experiences, []);
+      } else {
+        assert.deepEqual(experiences.map(event => event.outcome), ['PREPARED', 'FAILED']);
+        assert.equal(experiences[1].failureClass, 'provider_receipt_identity_mismatch');
+      }
     } finally {
       store.close();
     }
+  }
+});
+
+test('rejects a provider result that omits exact operation, pack, and operator-version attestation', async () => {
+  const directory = await mkdtemp(join(tmpdir(), 'eve-operator-attestation-'));
+  const input = join(directory, 'source.png');
+  const output = join(directory, 'output.png');
+  fixture(input);
+  const { store, ref } = activeStore();
+  const provider = {
+    providerId: 'provider:pillow-reference',
+    providerVersion: '0.1',
+    async execute(request) {
+      copyFileSync(request.input, request.output);
+      return {
+        providerId: this.providerId,
+        providerVersion: this.providerVersion,
+        operatorId: request.operatorId,
+        output: request.output,
+        metadata: { width: 4, height: 5 },
+      };
+    },
+  };
+  try {
+    const invocation = validInvocation();
+    invocation.packRef = { packId: ref.packId, version: ref.version, digest: ref.digest };
+    invocation.input = input;
+    invocation.output = output;
+    await assert.rejects(() => executeInvocation({
+      store,
+      manifests: [validProviderManifest()],
+      providers: [provider],
+      invocation,
+      revisionGuard: verifiedRevisionGuard,
+    }), /provider_receipt_identity_mismatch/);
+    const experiences = store.listExperience({ operatorId: invocation.operatorRef.operatorId });
+    assert.deepEqual(experiences.map(event => event.outcome), ['PREPARED', 'FAILED']);
+    assert.equal(experiences[1].failureClass, 'provider_receipt_identity_mismatch');
+    assert.equal(experiences[1].outputHashes[0], fileHash(output));
+  } finally {
+    store.close();
+  }
+});
+
+test('rejects provider metadata that carries authority or private-path fields', async () => {
+  const directory = await mkdtemp(join(tmpdir(), 'eve-operator-metadata-'));
+  const input = join(directory, 'source.png');
+  const output = join(directory, 'output.png');
+  fixture(input);
+  const { store, ref } = activeStore();
+  const provider = {
+    providerId: 'provider:pillow-reference',
+    providerVersion: '0.1',
+    async execute(request) {
+      copyFileSync(request.input, request.output);
+      return {
+        providerId: this.providerId,
+        providerVersion: this.providerVersion,
+        operationId: request.operationId,
+        packRef: structuredClone(request.packRef),
+        operatorRef: structuredClone(request.operatorRef),
+        inputArtifactId: request.inputArtifactId,
+        outputArtifactId: request.outputArtifactId,
+        output: request.output,
+        outputSha256: fileHash(request.output),
+        metadata: {
+          width: 4,
+          height: 5,
+          acceptance: 'ACCEPT',
+          privatePath: 'D:\\private\\model.bin',
+        },
+      };
+    },
+  };
+  try {
+    const invocation = validInvocation();
+    invocation.packRef = { packId: ref.packId, version: ref.version, digest: ref.digest };
+    invocation.input = input;
+    invocation.output = output;
+    await assert.rejects(() => executeInvocation({
+      store,
+      manifests: [validProviderManifest()],
+      providers: [provider],
+      invocation,
+      revisionGuard: verifiedRevisionGuard,
+    }), /provider_receipt_metadata_field_forbidden:acceptance/);
+    const experiences = store.listExperience({ operatorId: invocation.operatorRef.operatorId });
+    assert.deepEqual(experiences.map(event => event.outcome), ['PREPARED', 'FAILED']);
+    assert.equal(experiences[1].failureClass, 'provider_receipt_metadata_field_forbidden');
+  } finally {
+    store.close();
+  }
+});
+
+test('rejects unknown top-level fields in the provider execution result', async () => {
+  const directory = await mkdtemp(join(tmpdir(), 'eve-operator-result-schema-'));
+  const input = join(directory, 'source.png');
+  const output = join(directory, 'output.png');
+  fixture(input);
+  const { store, ref } = activeStore();
+  const provider = {
+    providerId: 'provider:pillow-reference',
+    providerVersion: '0.1',
+    async execute(request) {
+      copyFileSync(request.input, request.output);
+      return {
+        providerId: this.providerId,
+        providerVersion: this.providerVersion,
+        operationId: request.operationId,
+        packRef: structuredClone(request.packRef),
+        operatorRef: structuredClone(request.operatorRef),
+        operatorId: request.operatorId,
+        inputArtifactId: request.inputArtifactId,
+        outputArtifactId: request.outputArtifactId,
+        output: request.output,
+        outputSha256: fileHash(request.output),
+        metadata: { width: 4, height: 5 },
+        promotion: true,
+      };
+    },
+  };
+  try {
+    const invocation = validInvocation();
+    invocation.packRef = { packId: ref.packId, version: ref.version, digest: ref.digest };
+    invocation.input = input;
+    invocation.output = output;
+    await assert.rejects(() => executeInvocation({
+      store,
+      manifests: [validProviderManifest()],
+      providers: [provider],
+      invocation,
+      revisionGuard: verifiedRevisionGuard,
+    }), /provider_result_field_forbidden:promotion/);
+  } finally {
+    store.close();
   }
 });

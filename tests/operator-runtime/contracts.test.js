@@ -106,6 +106,15 @@ test('rejects schema drift, dangling references, provider fields, and promotion 
       pack => { pack.families[0].variants[0].effects[0].prompt = 'make it prettier'; },
       'operator_effect_field_forbidden:prompt',
     ],
+    [
+      'ambiguous compiler source',
+      pack => {
+        const duplicate = structuredClone(pack.compilerRules[0]);
+        duplicate.ruleId = 'compiler.rule.example.adjust-axis-alternate';
+        pack.compilerRules.push(duplicate);
+      },
+      'duplicate_compiler_source_operator:visual.op.semantic.adjust_axis',
+    ],
   ];
 
   for (const [name, mutate, reason] of cases) {
@@ -144,10 +153,25 @@ test('rejects provider and outcome fields that cross contract authority boundari
     reason: 'operator_invocation_field_forbidden:promotion',
   });
 
+  const pathIdentity = validInvocation();
+  pathIdentity.outputArtifactId = 'D:\\private\\output.png';
+  assert.deepEqual(validateOperatorInvocation(pathIdentity), {
+    ok: false,
+    reason: 'operator_invocation_artifact_id_invalid',
+  });
+
   const experience = validExperienceEvent();
   experience.acceptance = 'ACCEPT';
   assert.deepEqual(validateExperienceEvent(experience), {
     ok: false,
     reason: 'operator_experience_field_forbidden:acceptance',
+  });
+
+  const overclaim = validExperienceEvent();
+  overclaim.provenance = { kind: 'AI', id: 'ai:operator-learner' };
+  overclaim.evidenceClass = 'PRODUCTION_OBSERVED';
+  assert.deepEqual(validateExperienceEvent(overclaim), {
+    ok: false,
+    reason: 'operator_experience_evidence_overclaim:AI',
   });
 });
