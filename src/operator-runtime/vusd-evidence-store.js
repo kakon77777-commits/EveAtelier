@@ -1,4 +1,5 @@
 import { canonicalJson } from './canonical.js';
+import { normalizeCanonicalJsonValue } from './json-values.js';
 import {
   validateCounterfactualObservation,
   validateCounterfactualPrediction,
@@ -135,6 +136,7 @@ export class VusdEvidenceStore {
   }
 
   appendPrediction(prediction) {
+    prediction = normalizeCanonicalJsonValue(prediction);
     const validation = validateCounterfactualPrediction(prediction);
     if (!validation.ok) throw new Error(validation.reason);
     const pack = this.#resolvePack(prediction.packRef);
@@ -247,6 +249,7 @@ export class VusdEvidenceStore {
   }
 
   appendObservation(observation) {
+    observation = normalizeCanonicalJsonValue(observation);
     const validation = validateCounterfactualObservation(observation);
     if (!validation.ok) throw new Error(validation.reason);
     const prediction = this.getPrediction(observation.predictionId);
@@ -362,6 +365,7 @@ export class VusdEvidenceStore {
   }
 
   appendProposal(proposal) {
+    proposal = normalizeCanonicalJsonValue(proposal);
     const validation = validateOperatorProposal(proposal);
     if (!validation.ok) throw new Error(validation.reason);
     const pack = this.#resolvePack(proposal.basePackRef);

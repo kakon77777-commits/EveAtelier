@@ -186,6 +186,37 @@ test('stores immutable prediction and observation separately and derives a resid
   }
 });
 
+test('normalizes proxy-backed JSON once before append so return value and durable row agree', () => {
+  const store = new OperatorRegistryStore({ path: ':memory:' });
+  try {
+    const ref = register(store);
+    const expected = prediction(ref);
+    const supplied = prediction(ref);
+    supplied.provenance = new Proxy(supplied.provenance, {});
+
+    assert.deepEqual(store.appendCounterfactualPrediction(supplied), expected);
+    assert.deepEqual(store.getCounterfactualPrediction(expected.predictionId), expected);
+
+    const unstable = prediction(ref);
+    unstable.predictionId = 'counterfactual:prediction:proxy-failure';
+    unstable.provenance = new Proxy(unstable.provenance, {
+      ownKeys() {
+        throw new Error('proxy_snapshot_failed');
+      },
+    });
+    assert.throws(
+      () => store.appendCounterfactualPrediction(unstable),
+      /proxy_snapshot_failed/,
+    );
+    assert.throws(
+      () => store.getCounterfactualPrediction(unstable.predictionId),
+      /counterfactual_prediction_not_found/,
+    );
+  } finally {
+    store.close();
+  }
+});
+
 test('classifies directional mismatch and unknown evidence without upgrading either to a match', () => {
   const cases = [
     {

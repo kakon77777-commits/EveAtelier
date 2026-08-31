@@ -1,5 +1,5 @@
 import { createHash } from 'node:crypto';
-import { isCanonicalJsonValue } from './json-values.js';
+import { normalizeCanonicalJsonValue } from './json-values.js';
 
 function canonicalize(value) {
   if (Array.isArray(value)) return `[${value.map(canonicalize).join(',')}]`;
@@ -12,8 +12,7 @@ function canonicalize(value) {
 }
 
 export function canonicalJson(value) {
-  if (!isCanonicalJsonValue(value)) throw new TypeError('non_canonical_json_value');
-  return canonicalize(value);
+  return canonicalize(normalizeCanonicalJsonValue(value));
 }
 
 export function digestDefinition(value) {

@@ -205,6 +205,39 @@ test('stores exact experience evidence and makes every registry table append-onl
   }
 });
 
+test('normalizes proxy-backed experience before insert and keeps failed snapshots atomic', () => {
+  const store = new OperatorRegistryStore({ path: ':memory:' });
+  try {
+    const ref = register(store);
+    const expected = validExperienceEvent();
+    expected.packRef = { packId: ref.packId, version: ref.version, digest: ref.digest };
+    const supplied = validExperienceEvent();
+    supplied.packRef = structuredClone(expected.packRef);
+    supplied.provenance = new Proxy(supplied.provenance, {});
+    assert.deepEqual(store.appendExperience(supplied), expected);
+    assert.deepEqual(store.listExperience({ operatorId: expected.operatorRef.operatorId }), [expected]);
+
+    const unstable = validExperienceEvent();
+    unstable.eventId = 'experience:proxy-failure';
+    unstable.packRef = structuredClone(expected.packRef);
+    unstable.provenance = new Proxy(unstable.provenance, {
+      ownKeys() {
+        throw new Error('proxy_snapshot_failed');
+      },
+    });
+    assert.throws(
+      () => store.appendExperience(unstable),
+      /operator_experience_json_value_invalid/,
+    );
+    assert.deepEqual(
+      store.listExperience({ operatorId: expected.operatorRef.operatorId }),
+      [expected],
+    );
+  } finally {
+    store.close();
+  }
+});
+
 test('rejects INSERT OR REPLACE attacks against every immutable registry key', async () => {
   const directory = await mkdtemp(join(tmpdir(), 'eve-operator-registry-'));
   const databasePath = join(directory, 'registry.sqlite');

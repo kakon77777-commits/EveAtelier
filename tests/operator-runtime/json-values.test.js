@@ -110,4 +110,19 @@ test('VUSD contracts reject values whose validated view would differ from persis
     ok: false,
     reason: 'counterfactual_prediction_json_value_invalid',
   });
+
+  const prototypePolluted = prediction();
+  delete prototypePolluted.intervention.target;
+  Object.defineProperty(Object.prototype, 'target', {
+    configurable: true,
+    value: { kind: 'art.document', id: 'document:polluted' },
+  });
+  try {
+    assert.deepEqual(validateCounterfactualPrediction(prototypePolluted), {
+      ok: false,
+      reason: 'counterfactual_prediction_intervention_invalid',
+    });
+  } finally {
+    delete Object.prototype.target;
+  }
 });

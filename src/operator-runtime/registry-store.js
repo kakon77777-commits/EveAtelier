@@ -12,6 +12,7 @@ import {
   isCanonicalJsonValue,
   isDenseJsonArray,
   isPlainJsonObject,
+  normalizeCanonicalJsonValue,
 } from './json-values.js';
 import { VusdEvidenceStore } from './vusd-evidence-store.js';
 
@@ -28,7 +29,9 @@ function isObject(value) {
 }
 
 function exactFields(value, fields) {
-  return isObject(value) && Object.keys(value).every(key => fields.includes(key));
+  return isObject(value)
+    && Object.keys(value).length === fields.length
+    && Object.keys(value).every(key => fields.includes(key));
 }
 
 function nonEmptyUniqueStrings(value) {
@@ -157,6 +160,16 @@ export class OperatorRegistryStore {
   }
 
   registerPack({ pack, proposer, registeredAt } = {}) {
+    try {
+      pack = normalizeCanonicalJsonValue(pack);
+    } catch {
+      throw new Error('operator_pack_json_value_invalid');
+    }
+    try {
+      proposer = normalizeCanonicalJsonValue(proposer);
+    } catch {
+      throw new Error('operator_pack_proposer_invalid');
+    }
     const validation = validateOperatorPack(pack);
     if (!validation.ok) throw new Error(validation.reason);
     if (!validActor(proposer)) throw new Error('operator_pack_proposer_invalid');
@@ -207,9 +220,12 @@ export class OperatorRegistryStore {
   }
 
   appendLifecycleEvent(event) {
-    if (!exactFields(event, lifecycleFields) || !isCanonicalJsonValue(event)) {
+    try {
+      event = normalizeCanonicalJsonValue(event);
+    } catch {
       throw new Error('lifecycle_event_invalid');
     }
+    if (!exactFields(event, lifecycleFields)) throw new Error('lifecycle_event_invalid');
     if (event.schema !== 'eve-atelier-operator-lifecycle-event/v1'
         || typeof event.eventId !== 'string'
         || event.eventId.trim().length === 0
@@ -249,6 +265,11 @@ export class OperatorRegistryStore {
   }
 
   appendExperience(event) {
+    try {
+      event = normalizeCanonicalJsonValue(event);
+    } catch {
+      throw new Error('operator_experience_json_value_invalid');
+    }
     const validation = validateExperienceEvent(event);
     if (!validation.ok) throw new Error(validation.reason);
     if (event.provenance.kind === 'RUNTIME') {
@@ -321,6 +342,7 @@ export class OperatorRegistryStore {
   }
 
   #insertExperience(event) {
+    event = normalizeCanonicalJsonValue(event);
     const validation = validateExperienceEvent(event);
     if (!validation.ok) throw new Error(validation.reason);
     this.#database.prepare(`

@@ -146,7 +146,9 @@ Comparison 是純衍生 projection，不成為 evidence source：
 - `canonicalJson()` 對非 canonical input 直接 fail closed，不再把 validator 看見的 inherited/sparse state 靜默序列化成另一個值；
 - unknown key 即使名稱是空字串也必須拒絕。
 
-所有 Phase 2 operator-runtime timestamps 使用共用 `isCanonicalInstant()`：只接受完整 RFC3339 instant（`Z` 或 explicit offset），並自行驗證真實 calendar date、hour、minute、second。`Date.parse` 可正規化的不存在日期與 implementation-defined date strings 不再被接受。
+Persistence writer 會在任何 SQLite side effect 前取得一次 own-property-only normalized snapshot，並使用同一 snapshot 驗證、寫入與回傳。Prototype pollution 或 Proxy 不能再讓 validator、durable row 與 caller receipt 看見三種不同資料；snapshot 失敗時不得留下半完成 row。
+
+所有 Phase 2 operator-runtime timestamps 使用共用 `isCanonicalInstant()`：只接受完整 RFC3339 instant（`Z` 或 explicit offset、0–3 位 fractional second），並自行驗證真實 calendar date、hour、minute、second。`Date.parse` 可正規化的不存在日期、超過毫秒比較精度的 fraction 與 implementation-defined date strings 不再被接受。
 
 ## 7. Public/private boundary
 
@@ -190,7 +192,7 @@ npm run check
 checked_js=31 checked_python=true
 
 npm test
-135 tests / 134 pass / 0 fail / 1 explicit live-MRMIC opt-in skip
+137 tests / 136 pass / 0 fail / 1 explicit live-MRMIC opt-in skip
 
 git diff --check
 exit 0

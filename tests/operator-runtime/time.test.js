@@ -49,6 +49,8 @@ function predictionWith(recordedAt) {
 test('accepts canonical RFC3339 full instants with Z or an explicit offset', () => {
   const valid = [
     '2026-09-01T01:00:00Z',
+    '2026-09-01T01:00:00.1Z',
+    '2026-09-01T01:00:00.12Z',
     '2026-09-01T01:00:00.123Z',
     '2026-09-01T01:00:00+08:00',
     '2024-02-29T23:59:59-05:30',
@@ -64,6 +66,7 @@ test('rejects normalized nonexistent dates and implementation-defined date strin
     '2026-09-01 01:00:00Z',
     '2026-09-01T25:00:00Z',
     '2026-09-01T01:00:00+0800',
+    '2026-09-01T01:00:00.0001Z',
     'September 1, 2026 01:00:00 GMT',
   ];
   for (const value of invalid) assert.equal(isCanonicalInstant(value), false, value);

@@ -1,8 +1,8 @@
 import { isCanonicalInstant } from './time.js';
 import {
-  isCanonicalJsonValue,
   isDenseJsonArray,
   isPlainJsonObject,
+  normalizeCanonicalJsonValue,
 } from './json-values.js';
 
 const packFields = Object.freeze([
@@ -87,6 +87,14 @@ const receiptMetadataReservedName = /(accept|approv|evaluat|verdict|promot|workb
 
 function isObject(value) {
   return isPlainJsonObject(value);
+}
+
+function normalizeContractObject(value) {
+  try {
+    return normalizeCanonicalJsonValue(value);
+  } catch {
+    return null;
+  }
 }
 
 function nonEmptyString(value) {
@@ -422,7 +430,8 @@ function validateCompilerRule(rule, axes, locks, operators) {
 
 export function validateOperatorPack(value) {
   if (!isObject(value)) return { ok: false, reason: 'operator_pack_required' };
-  if (!isCanonicalJsonValue(value)) return { ok: false, reason: 'operator_pack_json_value_invalid' };
+  value = normalizeContractObject(value);
+  if (!value) return { ok: false, reason: 'operator_pack_json_value_invalid' };
   const extra = unknownKey(value, packFields);
   if (extra !== undefined) return { ok: false, reason: `operator_pack_field_forbidden:${extra}` };
   if (containsLocalPath(value)) return { ok: false, reason: 'operator_pack_local_path_forbidden' };
@@ -493,7 +502,8 @@ export function validateOperatorPack(value) {
 
 export function validateSemanticDirective(value) {
   if (!isObject(value)) return { ok: false, reason: 'semantic_directive_required' };
-  if (!isCanonicalJsonValue(value)) return { ok: false, reason: 'semantic_directive_json_value_invalid' };
+  value = normalizeContractObject(value);
+  if (!value) return { ok: false, reason: 'semantic_directive_json_value_invalid' };
   const extra = unknownKey(value, directiveFields);
   if (extra !== undefined) return { ok: false, reason: `semantic_directive_field_forbidden:${extra}` };
   if (value.schema !== 'eve-atelier-semantic-directive/v1') {
@@ -520,7 +530,8 @@ export function validateSemanticDirective(value) {
 
 export function validateProviderCapabilityManifest(value) {
   if (!isObject(value)) return { ok: false, reason: 'provider_capability_manifest_required' };
-  if (!isCanonicalJsonValue(value)) return { ok: false, reason: 'provider_manifest_json_value_invalid' };
+  value = normalizeContractObject(value);
+  if (!value) return { ok: false, reason: 'provider_manifest_json_value_invalid' };
   const extra = unknownKey(value, providerManifestFields);
   if (extra !== undefined) return { ok: false, reason: `provider_manifest_field_forbidden:${extra}` };
   if (containsLocalPath(value)) return { ok: false, reason: 'provider_manifest_local_path_forbidden' };
@@ -569,7 +580,8 @@ export function validateProviderCapabilityManifest(value) {
 
 export function validateOperatorInvocation(value) {
   if (!isObject(value)) return { ok: false, reason: 'operator_invocation_required' };
-  if (!isCanonicalJsonValue(value)) return { ok: false, reason: 'operator_invocation_json_value_invalid' };
+  value = normalizeContractObject(value);
+  if (!value) return { ok: false, reason: 'operator_invocation_json_value_invalid' };
   const extra = unknownKey(value, invocationFields);
   if (extra !== undefined) return { ok: false, reason: `operator_invocation_field_forbidden:${extra}` };
   if (value.schema !== 'eve-atelier-operator-invocation/v1') {
@@ -606,7 +618,8 @@ export function validateOperatorInvocation(value) {
 
 export function validateExperienceEvent(value) {
   if (!isObject(value)) return { ok: false, reason: 'operator_experience_required' };
-  if (!isCanonicalJsonValue(value)) return { ok: false, reason: 'operator_experience_json_value_invalid' };
+  value = normalizeContractObject(value);
+  if (!value) return { ok: false, reason: 'operator_experience_json_value_invalid' };
   const extra = unknownKey(value, experienceFields);
   if (extra !== undefined) return { ok: false, reason: `operator_experience_field_forbidden:${extra}` };
   if (value.schema !== 'eve-atelier-operator-experience-event/v1') {
@@ -680,9 +693,8 @@ export function validateExperienceEvent(value) {
 
 export function validateCounterfactualPrediction(value) {
   if (!isObject(value)) return { ok: false, reason: 'counterfactual_prediction_required' };
-  if (!isCanonicalJsonValue(value)) {
-    return { ok: false, reason: 'counterfactual_prediction_json_value_invalid' };
-  }
+  value = normalizeContractObject(value);
+  if (!value) return { ok: false, reason: 'counterfactual_prediction_json_value_invalid' };
   const extra = unknownKey(value, counterfactualPredictionFields);
   if (extra !== undefined) return { ok: false, reason: `counterfactual_prediction_field_forbidden:${extra}` };
   if (containsLocalPath(value)) {
@@ -740,9 +752,8 @@ export function validateCounterfactualPrediction(value) {
 
 export function validateCounterfactualObservation(value) {
   if (!isObject(value)) return { ok: false, reason: 'counterfactual_observation_required' };
-  if (!isCanonicalJsonValue(value)) {
-    return { ok: false, reason: 'counterfactual_observation_json_value_invalid' };
-  }
+  value = normalizeContractObject(value);
+  if (!value) return { ok: false, reason: 'counterfactual_observation_json_value_invalid' };
   const extra = unknownKey(value, counterfactualObservationFields);
   if (extra !== undefined) return { ok: false, reason: `counterfactual_observation_field_forbidden:${extra}` };
   if (containsLocalPath(value)) {
@@ -795,7 +806,8 @@ export function validateCounterfactualObservation(value) {
 
 export function validateOperatorProposal(value) {
   if (!isObject(value)) return { ok: false, reason: 'operator_proposal_required' };
-  if (!isCanonicalJsonValue(value)) return { ok: false, reason: 'operator_proposal_json_value_invalid' };
+  value = normalizeContractObject(value);
+  if (!value) return { ok: false, reason: 'operator_proposal_json_value_invalid' };
   const extra = unknownKey(value, operatorProposalFields);
   if (extra !== undefined) return { ok: false, reason: `operator_proposal_field_forbidden:${extra}` };
   if (containsLocalPath(value)) return { ok: false, reason: 'operator_proposal_local_path_forbidden' };
