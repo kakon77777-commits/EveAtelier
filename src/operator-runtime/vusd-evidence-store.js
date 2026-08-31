@@ -143,6 +143,11 @@ export class VusdEvidenceStore {
     if (!sourceOperator) {
       throw new Error(`counterfactual_operator_not_found:${operatorKey(prediction.operatorRef)}`);
     }
+    if (!sourceOperator.inputKinds.includes(prediction.intervention.target.kind)) {
+      throw new Error(
+        `counterfactual_target_kind_not_supported:${prediction.intervention.target.kind}`,
+      );
+    }
     const axes = new Map(pack.axes.map(axis => [axis.axisId, axis]));
     const seenInterventionAxes = new Set();
     for (const change of prediction.intervention.axisChanges) {
@@ -164,6 +169,12 @@ export class VusdEvidenceStore {
     const lockIds = new Set(pack.locks.map(lock => lock.lockId));
     const unknownLock = prediction.intervention.lockIds.find(lockId => !lockIds.has(lockId));
     if (unknownLock) throw new Error(`counterfactual_lock_not_found:${unknownLock}`);
+    const requestedLocks = new Set(prediction.intervention.lockIds);
+    const missingRequiredLock = sourceOperator.requiredLockIds
+      .find(lockId => !requestedLocks.has(lockId));
+    if (missingRequiredLock) {
+      throw new Error(`counterfactual_required_lock_missing:${missingRequiredLock}`);
+    }
     const missingClosure = prediction.intervention.minimalClosureOperatorRefs
       .find(ref => !operators.has(operatorKey(ref)));
     if (missingClosure) {

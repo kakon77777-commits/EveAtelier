@@ -61,6 +61,7 @@ Counterfactual Prediction
 - evidence class、provenance 與 recorded time。
 
 Prediction schema 不接受 `observedDeltas`、provider binding、acceptance、status 或 promotion 欄位。
+Store resolution 另外要求 `target.kind` 必須存在於 source operator 的 `inputKinds`，且 intervention 必須提供 source operator 的全部 `requiredLockIds`。
 
 ### 3.2 Observation
 
@@ -130,6 +131,7 @@ Comparison 是純衍生 projection，不成為 evidence source：
 - `provenance.kind` 只是 record-declared classification，不是 host-observed speaker identity，也不能證明實際 Human authority；需要 canonical promotion 時仍必須通過既有外部身份／review gate。
 - Observation 不能在 prediction 之前或同時建立。
 - Pack、axis、lock、operator、closure component 與 residual refs 全部 exact-resolve，否則 fail closed。
+- Exact operator binding 同時約束 target input kind 與 required locks，不能只核對 operator ID/version。
 - Operator proposal 不修改 pack，也不建立 lifecycle transition。
 - Existing Phase 2A HUMAN calibration / activation gate 保持唯一有效。
 - Comparison output 不是 evaluation、acceptance、promotion 或 theory truth。

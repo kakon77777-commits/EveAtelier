@@ -263,6 +263,16 @@ test('fails closed on dangling prediction, axes, closure operators, residuals, a
       value.predictedDeltas[0].axisId = 'semantic.axis.missing';
       store.appendCounterfactualPrediction(value);
     }, /counterfactual_axis_not_found:semantic.axis.missing/],
+    ['prediction omits operator-required lock', (store, ref) => {
+      const value = prediction(ref);
+      value.intervention.lockIds = [];
+      store.appendCounterfactualPrediction(value);
+    }, /counterfactual_required_lock_missing:semantic.lock.example.identity/],
+    ['prediction targets a kind the operator cannot consume', (store, ref) => {
+      const value = prediction(ref);
+      value.intervention.target.kind = 'unrelated.kind';
+      store.appendCounterfactualPrediction(value);
+    }, /counterfactual_target_kind_not_supported:unrelated.kind/],
     ['prediction with unknown closure operator', (store, ref) => {
       const value = prediction(ref);
       value.intervention.minimalClosureOperatorRefs = [operatorRef('visual.op.missing')];
