@@ -1,16 +1,16 @@
 # EveAtelier Real MVP Phase 1 Character Remaster Acceptance v0.1
 
-Date: 2026-08-30
+Date: 2026-08-31
 
-Branch: `integration/real-mvp-character-remaster`
+Branch: `main`
 
-Canonical baseline: `main@2aad5e79d8442197a15c8cd5c0d95b4149e878a1`
+Promotion execution baseline: `main@ea4bd367542c9081aefcab7a5eeed68af66f1661`
 
 ## Result
 
 **PARTIAL**
 
-The Real MVP architecture and executable boundaries are implemented and independently regressed. The approved external generation runtime, generation model, and evaluator model are installed. A complete five-image private local asset pack is present, multiple negative-reference binding is implemented, private-fixture thresholds were frozen before generation, and two real candidates were generated and independently evaluated as `ACCEPT`. The game-source asset is not proven `rights_clear_real`; human review, promotion, and candidate-specific MRMIC projection have not occurred.
+The private Basic MVP technical path is complete through generation, independent evaluation, human review, Workbench promotion, candidate-specific MRMIC projection/readback/render, and fresh full verification. Candidate 02 was recorded as `ACCEPT_WITH_WARNINGS` and is now `PRIVATE_EXPERIMENTAL_CURRENT`; Candidate 01 remains an alternate candidate. The game-source asset is not proven `rights_clear_real`, so the strict Real MVP result remains `PARTIAL`.
 
 The PASS definition has not been lowered.
 
@@ -107,7 +107,27 @@ EveAtelier opt-in live test:
 
 The MRMIC server was stopped after the test. Port 4173 was no longer listening, and the sibling checkout remained clean.
 
-This live projection used generated logical artifact identifiers to verify the cross-process bridge. It is not evidence of a real remastered candidate.
+This first live projection used generated logical artifact identifiers to verify the cross-process bridge. It was contract evidence, not evidence of a real remastered candidate.
+
+Candidate-specific private Basic MVP projection:
+
+- MRMIC version: `0.14.0`
+- capability schema: `mrmic-capabilities/v1`
+- canvas: `canvas-root`
+- canvas revision: 0 -> 2
+- portal ID: `portal:eve-atelier:character-remaster-private-001`
+- portal revision: 1
+- selected candidate: `document:wan-qingzhou-private-001:v2`
+- final provider resource ID: `artasset://eve-atelier/character-remaster-private-001/document:wan-qingzhou-private-001:v2/promoted?sha256=3ddd032adf3735f9c1d9fa2f4029b2ed7da823930baea5561a130b8046a359ab`
+- candidate readback verified: true
+- promoted readback verified: true
+- provider: `external`
+- resource kind: `artifact`
+- ownership transferred: false
+- portal and promoted resource present in live SVG render: true
+- identity mode: `legacy_local`; this is live local integration, not verified bearer identity
+
+The candidate-specific MRMIC server was stopped after readback. Port 4173 was no longer listening.
 
 ## Automated contract evidence
 
@@ -264,6 +284,7 @@ Candidate 01:
 - style: 0.7728
 - artifact quality: 1.0000
 - maximum negative similarity: 0.7022
+- retained role: alternate candidate
 
 Candidate 02:
 
@@ -277,13 +298,28 @@ Candidate 02:
 - style: 0.7623
 - artifact quality: 1.0000
 - maximum negative similarity: 0.6818
+- human disposition: `ACCEPT_WITH_WARNINGS`
+- retained role: `PRIVATE_EXPERIMENTAL_CURRENT`
+
+Formal human review:
+
+- selected version: `document:wan-qingzhou-private-001:v2`
+- evidence class: `human_observed`
+- reviewer binding: `human:local-owner`
+- disposition: `ACCEPT_WITH_WARNINGS`
+- reason summary: closer face shape, beard, long hair/topknot, pose, and composition, with lower negative-reference similarity
+- repair warnings: belt metal details, cuff patterns, and hand microdetails
+- scope: private experimental promotion only; not a finished game asset and not strict Real MVP PASS
 
 Workbench state:
 
-- current version remains `document:wan-qingzhou-private-001:v0`
+- current version: `document:wan-qingzhou-private-001:v2`
+- original source version: `document:wan-qingzhou-private-001:v0` retained as history
 - source hash preserved: true
 - candidate count: 2
-- promotion performed: false
+- Candidate 01 remains a candidate alternate: true
+- promotion performed: true
+- approved by: `human:local-owner`
 
 Private review package:
 
@@ -296,7 +332,7 @@ Private review package:
 - unsafe paths: 0
 - package scope: `PRIVATE_REVIEW_ONLY`
 
-The web GPT review is advisory only and cannot become the formal `human_observed` review automatically.
+The web GPT comparison remained advisory. The user's separate explicit authorization supplied the formal `human_observed` review; the advisory response was not promoted automatically.
 
 ## Acceptance gates
 
@@ -304,17 +340,16 @@ The web GPT review is advisory only and cannot become the formal `human_observed
 |---|---|---|
 | P1: real source/reference -> at least two real candidates | TECHNICAL PASS / RIGHTS BLOCKED | Five-image private pack, multiple negative binding, and two real ComfyUI candidates verified; game source is not proven `rights_clear_real` |
 | P2: real evaluator evidence | PRIVATE-FIXTURE PASS | Frozen private-fixture thresholds and real SigLIP evaluation produced two `ACCEPT` verdicts; no cross-pack generalization claimed |
-| P3: accepted candidate passes promotion gate | EVALUATION PASS / HUMAN GATE PENDING | Two accepted candidates exist; neither can promote before user review |
-| P4: current version changes after real human review | BLOCKED | No real human review; no promotion |
-| P5: live MRMIC candidate/promoted projection | CONTRACT + PRIOR LIVE BRIDGE PASS, CURRENT CANDIDATES PENDING | Cross-process bridge was previously verified; current candidates wait for review/promotion |
+| P3: accepted candidate passes promotion gate | PASS WITH WARNINGS | Candidate 02 has a real `human_observed` `ACCEPT_WITH_WARNINGS` review; Candidate 01 remains alternate |
+| P4: current version changes after real human review | PRIVATE BASIC MVP PASS | Candidate 02 is current, approved by `human:local-owner`; source hash is unchanged |
+| P5: live MRMIC candidate/promoted projection | LIVE LOCAL PASS | Candidate 02 candidate/promoted resource readback and SVG render verified; ownership remained external |
 | P6: evidence and acceptance report | PASS FOR CURRENT PARTIAL STATE | This report, runtime probe, test output, and commit history |
 
 ## Exact blockers
 
 1. The game-source research copy is privately authorized for this local experiment but is not proven `rights_clear_real`.
-2. No real user review has been recorded.
-3. No candidate has been promoted.
-4. The current candidates have not been projected through MRMIC.
+
+The belt, cuff, and hand-detail warnings are a local repair backlog. They do not erase the bounded private promotion, but they prevent treating Candidate 02 as a finished game asset.
 
 ## Installed approved runtime
 
@@ -346,14 +381,11 @@ The web GPT review is advisory only and cannot become the formal `human_observed
 
 Measured external runtime storage after installation: 10.91 GiB.
 
-## Next narrow gate: human review
+## Next narrow gates
 
-1. User discusses the desktop `PRIVATE_REVIEW_ONLY` ZIP with the web GPT.
-2. User selects candidate v1, candidate v2, or neither and supplies `APPROVE`, `ACCEPT_WITH_WARNINGS`, or `REJECT` plus a reason.
-3. EveAtelier records the user decision as the only formal `human_observed` review.
-4. If approved, promote the selected candidate while verifying the source hash remains unchanged.
-5. Start MRMIC, project candidate and promoted state, verify readback/render, and stop MRMIC normally.
-6. Rerun full verification and update this report to the final private Basic MVP classification.
+1. For the private experiment, create a bounded repair version for belt metal details, cuff patterns, and hand microdetails; require a new independent evaluation and human review before replacing Candidate 02.
+2. For strict Real MVP PASS, replace the private game-research source/reference pack with assets carrying sufficient rights evidence and rerun the same generation/evaluation/review/promotion/MRMIC path.
+3. Do not publish candidate bytes until the rights and distribution boundary is separately satisfied.
 
 ## Non-claims
 
@@ -362,7 +394,7 @@ Measured external runtime storage after installation: 10.91 GiB.
 - One two-candidate private-pack generation/evaluation run is claimed with two automated `ACCEPT` verdicts.
 - No rights-clear user Character Remaster generation batch is claimed.
 - No identity preservation is claimed from provider receipts or fixtures.
-- No human approval is claimed.
+- Human approval is claimed only for Candidate 02 as `PRIVATE_EXPERIMENTAL_CURRENT` with repair warnings.
 - Approved runtimes and model weights were installed only under the adjacent external runtime; no model bytes entered Git.
 - No private image was committed.
-- No remote branch, release, deployment, or publication occurred.
+- The public code and sanitized report are deployed to GitHub `main`; no public runtime/site or private asset deployment is claimed.

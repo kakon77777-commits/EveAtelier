@@ -11,14 +11,14 @@ The project is designed around a simple premise: AI should work with explicit vi
 Current acceptance state:
 
 - **Architecture / Workbench acceptance: PASS**
-- **Private local Basic MVP generation/evaluation: PASS through the human-review gate**
+- **Private local Basic MVP: PASS through human review, promotion, and candidate-specific MRMIC verification**
 - **Strict Real generative visual MVP: PARTIAL**
 
 The current three acceptance paths are:
 
 1. background removal — PASS,
 2. identity-preserving relighting — PASS within OFP-lite scope,
-3. character remastering — two real ComfyUI candidates generated and independently evaluated as `ACCEPT`; human review, promotion, candidate-specific MRMIC projection, and `rights_clear_real` evidence remain open.
+3. character remastering — two real ComfyUI candidates generated and independently evaluated as `ACCEPT`; Candidate 02 is `PRIVATE_EXPERIMENTAL_CURRENT` after `ACCEPT_WITH_WARNINGS`, Workbench promotion, and live local MRMIC readback/render. Candidate 01 remains alternate; `rights_clear_real` evidence remains open.
 
 ## Architecture anchors
 
@@ -63,19 +63,18 @@ The initial pre-MVP engineering sequence has been executed:
 - Character Remaster evaluator: real local SigLIP inference plus deterministic line/color/artifact measurements, with calibration limitations recorded.
 - Multiple negative references are preserved without selecting a fake primary.
 - OFP-lite relighting: executable approximation.
-- MRMIC Phase 13 bridge: capability, portal, freshness, transaction, readback, and prior live local create/patch/render verification.
-- Workbench candidate staging, independent evaluation, durable human review, state resume, and promotion gate: executable.
+- MRMIC Phase 13 bridge: capability, portal, freshness, transaction, and candidate-specific live local create/patch/readback/render verification.
+- Workbench candidate staging, independent evaluation, durable human review, state resume, and promotion gate: executed for Candidate 02 with warnings.
 - Full validation snapshot: 55 tests, 54 pass, 0 fail, 1 explicit opt-in live-MRMIC skip.
 - Private source/reference and generated candidate image bytes remain Git-ignored and are not distributed by this repository.
 
 See `docs/mvp/MVP_ACCEPTANCE_REPORT_v0.1.md` for the pre-MVP baseline and `docs/mvp/REAL_MVP_CHARACTER_REMASTER_ACCEPTANCE_v0.1.md` for current evidence and non-claims.
 
-## Next real-MVP gate
+## Next real-MVP gates
 
-1. Obtain the user's human review of the two staged Character Remaster candidates.
-2. Promote only the selected accepted candidate, if any, while re-verifying source immutability.
-3. Run candidate/promoted MRMIC projection and readback/render verification.
-4. Replace the private game-research source pack with assets carrying sufficient rights evidence before claiming strict Real MVP PASS or public asset distribution.
+1. Repair Candidate 02's belt metal details, cuff patterns, and hand microdetails as a new candidate; do not overwrite the accepted private version.
+2. Independently evaluate and human-review any repair candidate before promotion.
+3. Replace the private game-research source pack with assets carrying sufficient rights evidence before claiming strict Real MVP PASS or public asset distribution.
 
 ## License
 
