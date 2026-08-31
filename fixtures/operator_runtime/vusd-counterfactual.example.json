@@ -1,0 +1,146 @@
+{
+  "prediction": {
+    "schema": "eve-atelier-visual-counterfactual-prediction/v1",
+    "predictionId": "counterfactual:prediction:synthetic-opacity:001",
+    "packRef": {
+      "packId": "operator-pack:example-core",
+      "version": "1.0.0",
+      "digest": "375ebecefa30d58f64471dbb1b4a8cc65722fc2db0384e055ffbf6af177630a2"
+    },
+    "operatorRef": {
+      "operatorId": "visual.op.semantic.adjust_axis",
+      "version": "1.0.0"
+    },
+    "artifactBefore": {
+      "artifactId": "artifact:synthetic:layered-material:before",
+      "sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+    },
+    "intervention": {
+      "target": {
+        "kind": "art.document",
+        "id": "document:synthetic:layered-material:001"
+      },
+      "axisChanges": [
+        {
+          "axisId": "semantic.axis.example.intensity",
+          "mode": "SET",
+          "value": 0.4
+        }
+      ],
+      "lockIds": [
+        "semantic.lock.example.identity"
+      ],
+      "minimalClosureOperatorRefs": [
+        {
+          "operatorId": "visual.op.semantic.adjust_axis",
+          "version": "1.0.0"
+        }
+      ]
+    },
+    "predictedDeltas": [
+      {
+        "axisId": "semantic.axis.example.intensity",
+        "direction": "DECREASE",
+        "magnitude": "MEDIUM"
+      }
+    ],
+    "scopeRefs": [
+      "scope:character-art:synthetic"
+    ],
+    "rationaleRefs": [
+      "rationale:synthetic:functional:material-layering"
+    ],
+    "alternativeRationaleRefs": [
+      "rationale:synthetic:alternative:contrast-redistribution"
+    ],
+    "evidenceRefs": [
+      "evidence:synthetic:model-inference:material-layering"
+    ],
+    "evidenceClass": "MODEL_INFERENCE",
+    "provenance": {
+      "kind": "AI",
+      "id": "ai:synthetic-counterfactual-proposer"
+    },
+    "recordedAt": "2026-09-01T01:00:00+08:00"
+  },
+  "observation": {
+    "schema": "eve-atelier-visual-counterfactual-observation/v1",
+    "observationId": "counterfactual:observation:synthetic-opacity:001",
+    "predictionId": "counterfactual:prediction:synthetic-opacity:001",
+    "artifactAfter": {
+      "artifactId": "artifact:synthetic:layered-material:after",
+      "sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+    },
+    "observedDeltas": [
+      {
+        "axisId": "semantic.axis.example.intensity",
+        "direction": "DECREASE",
+        "magnitude": "SMALL"
+      }
+    ],
+    "collateralDeltas": [
+      {
+        "axisId": "semantic.axis.example.identity",
+        "direction": "STABLE",
+        "magnitude": "SMALL"
+      }
+    ],
+    "evaluationRefs": [
+      "evaluation:synthetic:shared-delta:001"
+    ],
+    "limitationRefs": [
+      "limitation:synthetic-single-sample"
+    ],
+    "evidenceRefs": [
+      "evidence:synthetic:generated-variant:001"
+    ],
+    "evidenceClass": "GENERATED_VARIANT",
+    "provenance": {
+      "kind": "SYSTEM",
+      "id": "system:synthetic-fixture-generator"
+    },
+    "recordedAt": "2026-09-01T01:05:00+08:00"
+  },
+  "proposal": {
+    "schema": "eve-atelier-operator-proposal/v1",
+    "proposalId": "operator-proposal:synthetic-material-relation:001",
+    "basePackRef": {
+      "packId": "operator-pack:example-core",
+      "version": "1.0.0",
+      "digest": "375ebecefa30d58f64471dbb1b4a8cc65722fc2db0384e055ffbf6af177630a2"
+    },
+    "proposedOperatorRef": {
+      "operatorId": "visual.op.semantic.synthetic_material_relation",
+      "version": "0.1.0"
+    },
+    "decomposition": {
+      "kind": "COMPOSITE",
+      "componentOperatorRefs": [
+        {
+          "operatorId": "visual.op.semantic.adjust_axis",
+          "version": "1.0.0"
+        }
+      ]
+    },
+    "scopeRefs": [
+      "scope:character-art:synthetic"
+    ],
+    "residualRefs": [
+      "counterfactual:observation:synthetic-opacity:001"
+    ],
+    "rationaleRefs": [
+      "rationale:synthetic:proposal:material-relation"
+    ],
+    "evidenceRefs": [
+      "evidence:synthetic:residual:001"
+    ],
+    "counterevidenceRefs": [
+      "counterevidence:synthetic:single-sample"
+    ],
+    "provenance": {
+      "kind": "AI",
+      "id": "ai:synthetic-operator-proposer"
+    },
+    "recordedAt": "2026-09-01T01:10:00+08:00"
+  }
+}

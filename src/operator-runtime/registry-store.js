@@ -7,6 +7,7 @@ import {
   validateProviderCapabilityManifest,
 } from './contracts.js';
 import { valueMatchesSchema } from './semantic-values.js';
+import { VusdEvidenceStore } from './vusd-evidence-store.js';
 
 function validActor(value) {
   return value
@@ -52,6 +53,7 @@ const lifecycleTransitions = Object.freeze({
 export class OperatorRegistryStore {
   #database;
   #runtimeAttempts = new Map();
+  #vusdEvidence;
 
   constructor({ path = ':memory:' } = {}) {
     this.#database = new DatabaseSync(path);
@@ -125,7 +127,6 @@ export class OperatorRegistryStore {
       CREATE TRIGGER IF NOT EXISTS experience_events_no_delete
       BEFORE DELETE ON experience_events
       BEGIN SELECT RAISE(ABORT, 'append_only_delete_forbidden'); END;
-
       CREATE TRIGGER IF NOT EXISTS operator_packs_no_replace
       BEFORE INSERT ON operator_packs
       WHEN EXISTS (
@@ -148,6 +149,10 @@ export class OperatorRegistryStore {
       )
       BEGIN SELECT RAISE(ABORT, 'append_only_replace_forbidden'); END;
     `);
+    this.#vusdEvidence = new VusdEvidenceStore({
+      database: this.#database,
+      resolvePack: ref => this.getPack(ref),
+    });
   }
 
   registerPack({ pack, proposer, registeredAt } = {}) {
@@ -278,6 +283,38 @@ export class OperatorRegistryStore {
       throw new Error('operator_experience_provider_ref_forbidden_for_proposal');
     }
     return this.#insertExperience(event);
+  }
+
+  appendCounterfactualPrediction(prediction) {
+    return this.#vusdEvidence.appendPrediction(prediction);
+  }
+
+  getCounterfactualPrediction(predictionId) {
+    return this.#vusdEvidence.getPrediction(predictionId);
+  }
+
+  appendCounterfactualObservation(observation) {
+    return this.#vusdEvidence.appendObservation(observation);
+  }
+
+  getCounterfactualObservation(observationId) {
+    return this.#vusdEvidence.getObservation(observationId);
+  }
+
+  listCounterfactualObservations(filter = {}) {
+    return this.#vusdEvidence.listObservations(filter);
+  }
+
+  compareCounterfactual(identity) {
+    return this.#vusdEvidence.compare(identity);
+  }
+
+  appendOperatorProposal(proposal) {
+    return this.#vusdEvidence.appendProposal(proposal);
+  }
+
+  listOperatorProposals(filter = {}) {
+    return this.#vusdEvidence.listProposals(filter);
   }
 
   #insertExperience(event) {

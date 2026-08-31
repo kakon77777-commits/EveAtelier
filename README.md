@@ -68,14 +68,16 @@ The initial pre-MVP engineering sequence has been executed:
 - Localized repair: pinned SD1.5 core-node workflow, explicit mask upload, current-parent lineage, deterministic locality evidence, zero outside-mask pixel changes, human review, and live MRMIC promotion verified for Repair A.
 - Experimental style-control foundation: provider-neutral `StyleConstraintPacket`, six-dimensional `SameSeriesObservation`, and project-local human pairwise preference contracts; uncalibrated observations always remain `UNVERIFIED`.
 - Dynamic Operator Registry Kernel: data-loaded axes, locks, families and compiler rules; immutable version digests; REPLACE-safe append-only SQLite evidence; human-gated activation; provider-neutral semantic plans; revision-guarded exact provider receipts; store-issued runtime evidence tokens; PREPARED/COMPLETED/FAILED experience events; and a real registry-bound Pillow resize green control.
-- Full validation snapshot: 121 tests, 120 pass, 0 fail, 1 explicit opt-in live-MRMIC skip.
+- VUSD counterfactual evidence kernel: immutable pre-generation predictions and later observations; exact pack/axis/lock/minimal-closure validation; explicit collateral deltas; derived residual comparison; and candidate-only operator proposals that cannot activate or promote themselves.
+- Full validation snapshot: 127 tests, 126 pass, 0 fail, 1 explicit opt-in live-MRMIC skip.
 - Private source/reference and generated candidate image bytes remain Git-ignored and are not distributed by this repository.
 
 See `docs/mvp/MVP_ACCEPTANCE_REPORT_v0.1.md` for the pre-MVP baseline,
 `docs/mvp/REAL_MVP_CHARACTER_REMASTER_ACCEPTANCE_v0.1.md` for current Real MVP evidence,
 and `docs/style-control/SAME_SERIES_CALIBRATION_FOUNDATION_v0.1.md` for the uncalibrated
 same-series contracts and non-claims. The Phase 2A design and evidence boundaries are in
-`docs/superpowers/specs/2026-08-31-dynamic-operator-registry-kernel-design.md`.
+`docs/superpowers/specs/2026-08-31-dynamic-operator-registry-kernel-design.md`; the VUSD Phase 2B
+crosswalk is in `docs/superpowers/specs/2026-09-01-vusd-counterfactual-evidence-kernel-design.md`.
 
 ## Next real-MVP gates
 

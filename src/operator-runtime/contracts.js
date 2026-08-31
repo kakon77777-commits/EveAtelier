@@ -51,6 +51,27 @@ const experienceFields = Object.freeze([
   'inputHashes', 'outputHashes', 'outcome', 'evaluationRefs', 'humanPreferenceRef',
   'evidenceClass', 'provenance', 'failureClass', 'occurredAt',
 ]);
+const artifactEvidenceFields = Object.freeze(['artifactId', 'sha256']);
+const sharedDeltaFields = Object.freeze(['axisId', 'direction', 'magnitude']);
+const counterfactualInterventionFields = Object.freeze([
+  'target', 'axisChanges', 'lockIds', 'minimalClosureOperatorRefs',
+]);
+const counterfactualPredictionFields = Object.freeze([
+  'schema', 'predictionId', 'packRef', 'operatorRef', 'artifactBefore', 'intervention',
+  'predictedDeltas', 'scopeRefs', 'rationaleRefs', 'alternativeRationaleRefs',
+  'evidenceRefs', 'evidenceClass', 'provenance', 'recordedAt',
+]);
+const counterfactualObservationFields = Object.freeze([
+  'schema', 'observationId', 'predictionId', 'artifactAfter', 'observedDeltas',
+  'collateralDeltas', 'evaluationRefs', 'limitationRefs', 'evidenceRefs',
+  'evidenceClass', 'provenance', 'recordedAt',
+]);
+const operatorProposalFields = Object.freeze([
+  'schema', 'proposalId', 'basePackRef', 'proposedOperatorRef', 'decomposition',
+  'scopeRefs', 'residualRefs', 'rationaleRefs', 'evidenceRefs', 'counterevidenceRefs',
+  'provenance', 'recordedAt',
+]);
+const decompositionFields = Object.freeze(['kind', 'componentOperatorRefs']);
 
 const semverPattern = /^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$/;
 const absoluteLocalPath = /(?:^|[\s"'(])(?:[A-Za-z]:[\\/]|\\\\|\/(?:home|users|var|tmp|opt)\/)/i;
@@ -128,6 +149,54 @@ function validateRequestedLock(value) {
     && !unknownKey(value, requestedLockFields)
     && nonEmptyString(value.lockId)
     && value.mode === 'PRESERVE';
+}
+
+function validateProvenance(value) {
+  return isObject(value)
+    && !unknownKey(value, experienceProvenanceFields)
+    && ['AI', 'HUMAN', 'SYSTEM'].includes(value.kind)
+    && nonEmptyString(value.id);
+}
+
+function validateArtifactEvidence(value) {
+  return isObject(value)
+    && !unknownKey(value, artifactEvidenceFields)
+    && nonEmptyString(value.artifactId)
+    && !containsLocalPath(value.artifactId)
+    && isSha256(value.sha256);
+}
+
+function validateSharedDeltas(values, { nonEmpty = true } = {}) {
+  if (!Array.isArray(values) || (nonEmpty && values.length === 0)) return false;
+  const axes = new Set();
+  for (const value of values) {
+    if (!isObject(value)
+        || unknownKey(value, sharedDeltaFields)
+        || !nonEmptyString(value.axisId)
+        || !value.axisId.startsWith('semantic.axis.')
+        || !['INCREASE', 'DECREASE', 'STABLE', 'UNKNOWN'].includes(value.direction)
+        || !['SMALL', 'MEDIUM', 'LARGE', 'UNKNOWN'].includes(value.magnitude)
+        || axes.has(value.axisId)) {
+      return false;
+    }
+    axes.add(value.axisId);
+  }
+  return true;
+}
+
+function validateCounterfactualIntervention(value) {
+  return isObject(value)
+    && !unknownKey(value, counterfactualInterventionFields)
+    && validateTarget(value.target)
+    && Array.isArray(value.axisChanges)
+    && value.axisChanges.length > 0
+    && value.axisChanges.every(validateAxisChange)
+    && uniqueStrings(value.lockIds)
+    && Array.isArray(value.minimalClosureOperatorRefs)
+    && value.minimalClosureOperatorRefs.length > 0
+    && value.minimalClosureOperatorRefs.every(validateOperatorRef)
+    && new Set(value.minimalClosureOperatorRefs.map(ref => `${ref.operatorId}@${ref.version}`)).size
+      === value.minimalClosureOperatorRefs.length;
 }
 
 function validateValueSchema(value) {
@@ -594,5 +663,160 @@ export function validateExperienceEvent(value) {
     return { ok: false, reason: `operator_experience_evidence_overclaim:${value.provenance.kind}` };
   }
   if (!validDate(value.occurredAt)) return { ok: false, reason: 'operator_experience_occurred_at_invalid' };
+  return { ok: true };
+}
+
+export function validateCounterfactualPrediction(value) {
+  if (!isObject(value)) return { ok: false, reason: 'counterfactual_prediction_required' };
+  const extra = unknownKey(value, counterfactualPredictionFields);
+  if (extra) return { ok: false, reason: `counterfactual_prediction_field_forbidden:${extra}` };
+  if (containsLocalPath(value)) {
+    return { ok: false, reason: 'counterfactual_prediction_local_path_forbidden' };
+  }
+  if (value.schema !== 'eve-atelier-visual-counterfactual-prediction/v1') {
+    return { ok: false, reason: 'unsupported_counterfactual_prediction_schema' };
+  }
+  if (!nonEmptyString(value.predictionId)) {
+    return { ok: false, reason: 'counterfactual_prediction_id_required' };
+  }
+  if (!validatePackRef(value.packRef)) {
+    return { ok: false, reason: 'counterfactual_prediction_pack_ref_invalid' };
+  }
+  if (!validateOperatorRef(value.operatorRef)) {
+    return { ok: false, reason: 'counterfactual_prediction_operator_ref_invalid' };
+  }
+  if (!validateArtifactEvidence(value.artifactBefore)) {
+    return { ok: false, reason: 'counterfactual_prediction_artifact_invalid' };
+  }
+  if (!validateCounterfactualIntervention(value.intervention)) {
+    return { ok: false, reason: 'counterfactual_prediction_intervention_invalid' };
+  }
+  if (!validateSharedDeltas(value.predictedDeltas)) {
+    return { ok: false, reason: 'counterfactual_prediction_deltas_invalid' };
+  }
+  if (!uniqueStrings(value.scopeRefs, { nonEmpty: true })
+      || !uniqueStrings(value.rationaleRefs, { nonEmpty: true })
+      || !uniqueStrings(value.alternativeRationaleRefs)
+      || !uniqueStrings(value.evidenceRefs, { nonEmpty: true })) {
+    return { ok: false, reason: 'counterfactual_prediction_references_invalid' };
+  }
+  if (!['MODEL_INFERENCE', 'HUMAN_ANALYST_INFERENCE', 'DOCUMENTED_CREATOR_RATIONALE', 'FIXTURE', 'CONTRACT_TESTED'].includes(value.evidenceClass)) {
+    return { ok: false, reason: 'counterfactual_prediction_evidence_class_invalid' };
+  }
+  if (!validateProvenance(value.provenance)) {
+    return { ok: false, reason: 'counterfactual_prediction_provenance_invalid' };
+  }
+  const allowedEvidence = {
+    AI: ['MODEL_INFERENCE', 'FIXTURE', 'CONTRACT_TESTED'],
+    HUMAN: ['HUMAN_ANALYST_INFERENCE', 'DOCUMENTED_CREATOR_RATIONALE', 'FIXTURE', 'CONTRACT_TESTED'],
+    SYSTEM: ['FIXTURE', 'CONTRACT_TESTED'],
+  };
+  if (!allowedEvidence[value.provenance.kind].includes(value.evidenceClass)) {
+    return {
+      ok: false,
+      reason: `counterfactual_prediction_evidence_overclaim:${value.provenance.kind}`,
+    };
+  }
+  if (!validDate(value.recordedAt)) {
+    return { ok: false, reason: 'counterfactual_prediction_recorded_at_invalid' };
+  }
+  return { ok: true };
+}
+
+export function validateCounterfactualObservation(value) {
+  if (!isObject(value)) return { ok: false, reason: 'counterfactual_observation_required' };
+  const extra = unknownKey(value, counterfactualObservationFields);
+  if (extra) return { ok: false, reason: `counterfactual_observation_field_forbidden:${extra}` };
+  if (containsLocalPath(value)) {
+    return { ok: false, reason: 'counterfactual_observation_local_path_forbidden' };
+  }
+  if (value.schema !== 'eve-atelier-visual-counterfactual-observation/v1') {
+    return { ok: false, reason: 'unsupported_counterfactual_observation_schema' };
+  }
+  if (!nonEmptyString(value.observationId) || !nonEmptyString(value.predictionId)) {
+    return { ok: false, reason: 'counterfactual_observation_identity_required' };
+  }
+  if (!validateArtifactEvidence(value.artifactAfter)) {
+    return { ok: false, reason: 'counterfactual_observation_artifact_invalid' };
+  }
+  if (!validateSharedDeltas(value.observedDeltas)
+      || !validateSharedDeltas(value.collateralDeltas, { nonEmpty: false })) {
+    return { ok: false, reason: 'counterfactual_observation_deltas_invalid' };
+  }
+  const observedAxes = new Set(value.observedDeltas.map(delta => delta.axisId));
+  if (value.collateralDeltas.some(delta => observedAxes.has(delta.axisId))) {
+    return { ok: false, reason: 'counterfactual_observation_collateral_overlap' };
+  }
+  if (!uniqueStrings(value.evaluationRefs, { nonEmpty: true })
+      || !uniqueStrings(value.limitationRefs)
+      || !uniqueStrings(value.evidenceRefs, { nonEmpty: true })) {
+    return { ok: false, reason: 'counterfactual_observation_references_invalid' };
+  }
+  if (!['MODEL_OBSERVATION', 'HUMAN_OBSERVATION', 'GENERATED_VARIANT', 'MANUAL_EDIT', 'CONTROLLED_EXPERIMENT', 'FIXTURE', 'CONTRACT_TESTED'].includes(value.evidenceClass)) {
+    return { ok: false, reason: 'counterfactual_observation_evidence_class_invalid' };
+  }
+  if (!validateProvenance(value.provenance)) {
+    return { ok: false, reason: 'counterfactual_observation_provenance_invalid' };
+  }
+  const allowedEvidence = {
+    AI: ['MODEL_OBSERVATION', 'FIXTURE', 'CONTRACT_TESTED'],
+    HUMAN: ['HUMAN_OBSERVATION', 'MANUAL_EDIT', 'CONTROLLED_EXPERIMENT', 'FIXTURE', 'CONTRACT_TESTED'],
+    SYSTEM: ['GENERATED_VARIANT', 'CONTROLLED_EXPERIMENT', 'FIXTURE', 'CONTRACT_TESTED'],
+  };
+  if (!allowedEvidence[value.provenance.kind].includes(value.evidenceClass)) {
+    return {
+      ok: false,
+      reason: `counterfactual_observation_evidence_overclaim:${value.provenance.kind}`,
+    };
+  }
+  if (!validDate(value.recordedAt)) {
+    return { ok: false, reason: 'counterfactual_observation_recorded_at_invalid' };
+  }
+  return { ok: true };
+}
+
+export function validateOperatorProposal(value) {
+  if (!isObject(value)) return { ok: false, reason: 'operator_proposal_required' };
+  const extra = unknownKey(value, operatorProposalFields);
+  if (extra) return { ok: false, reason: `operator_proposal_field_forbidden:${extra}` };
+  if (containsLocalPath(value)) return { ok: false, reason: 'operator_proposal_local_path_forbidden' };
+  if (value.schema !== 'eve-atelier-operator-proposal/v1') {
+    return { ok: false, reason: 'unsupported_operator_proposal_schema' };
+  }
+  if (!nonEmptyString(value.proposalId)) return { ok: false, reason: 'operator_proposal_id_required' };
+  if (!validatePackRef(value.basePackRef)) return { ok: false, reason: 'operator_proposal_pack_ref_invalid' };
+  if (!validateOperatorRef(value.proposedOperatorRef)) {
+    return { ok: false, reason: 'operator_proposal_operator_ref_invalid' };
+  }
+  if (!isObject(value.decomposition) || unknownKey(value.decomposition, decompositionFields)
+      || !['COMPOSITE', 'PRIMITIVE_CANDIDATE'].includes(value.decomposition.kind)
+      || !Array.isArray(value.decomposition.componentOperatorRefs)
+      || value.decomposition.componentOperatorRefs.some(ref => !validateOperatorRef(ref))) {
+    return { ok: false, reason: 'operator_proposal_decomposition_invalid' };
+  }
+  const componentKeys = value.decomposition.componentOperatorRefs
+    .map(ref => `${ref.operatorId}@${ref.version}`);
+  if (new Set(componentKeys).size !== componentKeys.length) {
+    return { ok: false, reason: 'operator_proposal_component_duplicate' };
+  }
+  if (value.decomposition.kind === 'COMPOSITE' && componentKeys.length === 0) {
+    return { ok: false, reason: 'operator_proposal_composite_components_required' };
+  }
+  if (value.decomposition.kind === 'PRIMITIVE_CANDIDATE' && componentKeys.length > 0) {
+    return { ok: false, reason: 'operator_proposal_primitive_components_forbidden' };
+  }
+  if (!uniqueStrings(value.scopeRefs, { nonEmpty: true })
+      || !uniqueStrings(value.residualRefs, { nonEmpty: true })
+      || !uniqueStrings(value.rationaleRefs, { nonEmpty: true })
+      || !uniqueStrings(value.evidenceRefs, { nonEmpty: true })
+      || !uniqueStrings(value.counterevidenceRefs)) {
+    return { ok: false, reason: 'operator_proposal_references_invalid' };
+  }
+  if (!validateProvenance(value.provenance)) {
+    return { ok: false, reason: 'operator_proposal_provenance_invalid' };
+  }
+  if (!validDate(value.recordedAt)) {
+    return { ok: false, reason: 'operator_proposal_recorded_at_invalid' };
+  }
   return { ok: true };
 }
