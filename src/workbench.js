@@ -1,5 +1,6 @@
 import { readFileSync } from 'node:fs';
 import { createHash } from 'node:crypto';
+import { validateHumanReview } from './character-remaster/human-review.js';
 
 function hashFile(path) {
   return createHash('sha256').update(readFileSync(path)).digest('hex');
@@ -24,6 +25,7 @@ export class EveAtelierWorkbench {
       status: 'current',
       evaluation: { verdict: 'SOURCE' },
       execution: null,
+      humanReview: null,
     };
     this.documents.set(documentId, {
       documentId,
@@ -70,6 +72,7 @@ export class EveAtelierWorkbench {
       status: 'candidate',
       evaluation: evaluation ? structuredClone(evaluation) : { verdict: 'UNVERIFIED' },
       execution: execution ? structuredClone(execution) : null,
+      humanReview: null,
     };
     doc.versions.set(versionId, candidate);
     return structuredClone(candidate);
@@ -83,6 +86,14 @@ export class EveAtelierWorkbench {
     return structuredClone(version);
   }
 
+  recordHumanReview({ documentId, versionId, review }) {
+    const doc = this.#document(documentId);
+    const version = doc.versions.get(versionId);
+    if (!version || version.status !== 'candidate') throw new Error('candidate_not_found');
+    version.humanReview = validateHumanReview(review, versionId);
+    return structuredClone(version);
+  }
+
   promoteCandidate({ documentId, versionId, approvedBy }) {
     const doc = this.#document(documentId);
     const candidate = doc.versions.get(versionId);
@@ -90,15 +101,76 @@ export class EveAtelierWorkbench {
     if (!['ACCEPT', 'ACCEPT_WITH_WARNINGS'].includes(candidate.evaluation?.verdict)) {
       throw new Error('candidate_not_accepted');
     }
-    if (doc.promotionPolicy === 'human_required' && (!approvedBy || !approvedBy.startsWith('human:'))) {
-      throw new Error('human_approval_required');
+    if (doc.promotionPolicy === 'human_required') {
+      if (!candidate.humanReview) throw new Error('human_approval_required');
+      if (!['APPROVE', 'ACCEPT_WITH_WARNINGS'].includes(candidate.humanReview.disposition)) {
+        throw new Error('human_review_rejected');
+      }
     }
     const old = doc.versions.get(doc.currentVersionId);
     if (old) old.status = 'history';
     candidate.status = 'current';
-    candidate.approvedBy = approvedBy ?? 'validator:auto';
+    candidate.approvedBy = doc.promotionPolicy === 'human_required'
+      ? `human:${candidate.humanReview.reviewer.id}`
+      : approvedBy ?? 'validator:auto';
     doc.currentVersionId = versionId;
     return structuredClone(candidate);
+  }
+
+  exportState() {
+    return {
+      schema: 'eve-atelier-workbench/v1',
+      projectId: this.projectId,
+      documents: [...this.documents.values()].map(doc => ({
+        documentId: doc.documentId,
+        projectId: doc.projectId,
+        promotionPolicy: doc.promotionPolicy,
+        currentVersionId: doc.currentVersionId,
+        nextVersion: doc.nextVersion,
+        versions: [...doc.versions.values()].map(version => structuredClone(version)),
+      })),
+    };
+  }
+
+  static fromState(state) {
+    if (!state || state.schema !== 'eve-atelier-workbench/v1' || !Array.isArray(state.documents)) {
+      throw new Error('workbench_state_invalid');
+    }
+    const workbench = new EveAtelierWorkbench({ projectId: state.projectId });
+    for (const document of state.documents) {
+      if (!document || typeof document.documentId !== 'string' || !Array.isArray(document.versions)) {
+        throw new Error('workbench_document_invalid');
+      }
+      if (workbench.documents.has(document.documentId)) throw new Error('duplicate_document_id');
+      const versions = new Map();
+      for (const rawVersion of document.versions) {
+        const version = structuredClone(rawVersion);
+        if (!version || typeof version.versionId !== 'string' || versions.has(version.versionId)) {
+          throw new Error('duplicate_or_invalid_version_id');
+        }
+        if (hashFile(version.assetPath) !== version.assetHash) {
+          throw new Error(`asset_hash_mismatch:${version.versionId}`);
+        }
+        if (version.humanReview) {
+          version.humanReview = validateHumanReview(version.humanReview, version.versionId);
+        }
+        versions.set(version.versionId, version);
+      }
+      if (!versions.has(document.currentVersionId)
+          || !Number.isInteger(document.nextVersion)
+          || document.nextVersion < 1) {
+        throw new Error('workbench_document_state_invalid');
+      }
+      workbench.documents.set(document.documentId, {
+        documentId: document.documentId,
+        projectId: document.projectId,
+        promotionPolicy: document.promotionPolicy,
+        currentVersionId: document.currentVersionId,
+        nextVersion: document.nextVersion,
+        versions,
+      });
+    }
+    return workbench;
   }
 
   #document(documentId) {

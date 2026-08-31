@@ -1,0 +1,11 @@
+{
+  "thresholdSetId": "character-remaster-001-example",
+  "calibrationStatus": "EXAMPLE_UNCALIBRATED",
+  "calibrationFixtureSet": null,
+  "identityMin": 0.78,
+  "lineAlignmentMin": 0.62,
+  "colorAlignmentMin": 0.62,
+  "styleAlignmentMin": 0.62,
+  "artifactQualityMin": 0.70,
+  "negativeReferenceMax": 0.40
+}
