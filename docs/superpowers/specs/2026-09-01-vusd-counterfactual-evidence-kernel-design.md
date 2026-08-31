@@ -72,7 +72,7 @@ Prediction schema 不接受 `observedDeltas`、provider binding、acceptance、s
 - evaluation、limitation 與 evidence refs；
 - evidence class、provenance 與 recorded time。
 
-Observation 必須在 prediction 之後追加。其 primary observed axes 必須是 prediction 已預測的 axes；新增影響只能進 `collateralDeltas`。
+Observation 必須在 prediction 之後追加。其 primary observed axes 必須是 prediction 已預測的 axes；新增影響只能進 `collateralDeltas`，而已預測的 axis 不得被重新標成 collateral。
 
 ### 3.3 Operator Proposal
 
@@ -86,6 +86,7 @@ Observation 必須在 prediction 之後追加。其 primary observed axes 必須
 - 不含 status、activation、authority 或 promotion。
 
 `COMPOSITE` 必須引用既有 component operators；`PRIMITIVE_CANDIDATE` 不得偽裝已有 components。
+Proposal 必須在它引用的 residual observations 之後追加。
 
 ## 4. Persistence
 
@@ -149,7 +150,7 @@ Tracked fixture `fixtures/operator_runtime/vusd-counterfactual.example.json` 完
 1. Prediction、observation、proposal 使用三個 strict schemas，未知欄位拒絕。
 2. Prediction 與 observation 分表且 append-only。
 3. Observation 必須引用存在且較早的 prediction。
-4. Axis、lock、operator 與 minimal closure 必須由 exact pack snapshot 驗證。
+4. Axis、lock、operator 與 minimal closure 必須由 exact pack snapshot 驗證；closure 必須包含實際 intervention operator。
 5. 未預測影響只能進 collateral。
 6. Residual comparison 可區分 match、partial、mismatch、unresolved 與 collateral。
 7. Proposal 必須引用已存在 observation residual 與合法 component operators。
@@ -174,7 +175,7 @@ npm run check
 checked_js=29 checked_python=true
 
 npm test
-127 tests / 126 pass / 0 fail / 1 explicit live-MRMIC opt-in skip
+128 tests / 127 pass / 0 fail / 1 explicit live-MRMIC opt-in skip
 
 git diff --check
 exit 0

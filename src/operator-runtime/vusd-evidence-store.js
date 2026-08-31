@@ -169,6 +169,12 @@ export class VusdEvidenceStore {
     if (missingClosure) {
       throw new Error(`counterfactual_closure_operator_not_found:${operatorKey(missingClosure)}`);
     }
+    if (!prediction.intervention.minimalClosureOperatorRefs
+      .some(ref => operatorKey(ref) === operatorKey(prediction.operatorRef))) {
+      throw new Error(
+        `counterfactual_closure_source_operator_required:${operatorKey(prediction.operatorRef)}`,
+      );
+    }
     const unknownDelta = prediction.predictedDeltas.find(delta => !axes.has(delta.axisId));
     if (unknownDelta) throw new Error(`counterfactual_axis_not_found:${unknownDelta.axisId}`);
 
@@ -246,6 +252,13 @@ export class VusdEvidenceStore {
       .find(delta => !predictedAxes.has(delta.axisId));
     if (unpredicted) {
       throw new Error(`counterfactual_observation_unpredicted_axis:${unpredicted.axisId}`);
+    }
+    const predictedCollateral = observation.collateralDeltas
+      .find(delta => predictedAxes.has(delta.axisId));
+    if (predictedCollateral) {
+      throw new Error(
+        `counterfactual_observation_predicted_axis_as_collateral:${predictedCollateral.axisId}`,
+      );
     }
 
     this.#database.prepare(`
@@ -355,6 +368,10 @@ export class VusdEvidenceStore {
         SELECT prediction_id FROM counterfactual_observations WHERE observation_id = ?
       `).get(residualRef);
       if (!row) throw new Error(`operator_proposal_residual_not_found:${residualRef}`);
+      const observation = this.getObservation(residualRef);
+      if (Date.parse(proposal.recordedAt) <= Date.parse(observation.recordedAt)) {
+        throw new Error(`operator_proposal_not_after_residual:${residualRef}`);
+      }
       const prediction = this.getPrediction(row.prediction_id);
       if (canonicalJson(prediction.packRef) !== canonicalJson(proposal.basePackRef)) {
         throw new Error(`operator_proposal_residual_pack_mismatch:${residualRef}`);

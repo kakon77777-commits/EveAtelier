@@ -186,6 +186,48 @@ test('stores immutable prediction and observation separately and derives a resid
   }
 });
 
+test('classifies directional mismatch and unknown evidence without upgrading either to a match', () => {
+  const cases = [
+    {
+      name: 'mismatch',
+      predicted: delta('semantic.axis.example.intensity', 'DECREASE', 'MEDIUM'),
+      observed: delta('semantic.axis.example.intensity', 'INCREASE', 'MEDIUM'),
+      expected: 'MISMATCH',
+    },
+    {
+      name: 'unknown',
+      predicted: delta('semantic.axis.example.intensity', 'UNKNOWN', 'UNKNOWN'),
+      observed: delta('semantic.axis.example.intensity', 'DECREASE', 'SMALL'),
+      expected: 'UNRESOLVED',
+    },
+  ];
+
+  for (const entry of cases) {
+    const store = new OperatorRegistryStore({ path: ':memory:' });
+    try {
+      const ref = register(store);
+      const predicted = prediction(ref);
+      predicted.predictionId = `counterfactual:prediction:${entry.name}`;
+      predicted.predictedDeltas = [entry.predicted];
+      const observed = observation(predicted.predictionId);
+      observed.observationId = `counterfactual:observation:${entry.name}`;
+      observed.observedDeltas = [entry.observed];
+      observed.collateralDeltas = [];
+      store.appendCounterfactualPrediction(predicted);
+      store.appendCounterfactualObservation(observed);
+      const comparison = store.compareCounterfactual({
+        predictionId: predicted.predictionId,
+        observationId: observed.observationId,
+      });
+      assert.equal(comparison.deltas[0].status, entry.expected, entry.name);
+      assert.equal(comparison.summary[entry.expected], 1, entry.name);
+      assert.equal(comparison.summary.MATCH, 0, entry.name);
+    } finally {
+      store.close();
+    }
+  }
+});
+
 test('fails closed on dangling prediction, axes, closure operators, residuals, and components', () => {
   const cases = [
     ['observation without prediction', (store, ref) => {
@@ -208,6 +250,14 @@ test('fails closed on dangling prediction, axes, closure operators, residuals, a
       observed.collateralDeltas = [];
       store.appendCounterfactualObservation(observed);
     }, /counterfactual_observation_unpredicted_axis:semantic.axis.example.identity/],
+    ['predicted axis mislabeled as collateral', (store, ref) => {
+      const predicted = prediction(ref);
+      predicted.predictedDeltas.push(
+        delta('semantic.axis.example.identity', 'STABLE', 'SMALL'),
+      );
+      store.appendCounterfactualPrediction(predicted);
+      store.appendCounterfactualObservation(observation(predicted.predictionId));
+    }, /counterfactual_observation_predicted_axis_as_collateral:semantic.axis.example.identity/],
     ['prediction with unknown delta axis', (store, ref) => {
       const value = prediction(ref);
       value.predictedDeltas[0].axisId = 'semantic.axis.missing';
@@ -218,6 +268,13 @@ test('fails closed on dangling prediction, axes, closure operators, residuals, a
       value.intervention.minimalClosureOperatorRefs = [operatorRef('visual.op.missing')];
       store.appendCounterfactualPrediction(value);
     }, /counterfactual_closure_operator_not_found:visual.op.missing@1.0.0/],
+    ['prediction closure omits intervention operator', (store, ref) => {
+      const value = prediction(ref);
+      value.intervention.minimalClosureOperatorRefs = [
+        operatorRef('visual.op.raster.resize'),
+      ];
+      store.appendCounterfactualPrediction(value);
+    }, /counterfactual_closure_source_operator_required:visual.op.semantic.adjust_axis@1.0.0/],
     ['proposal without residual', (store, ref) => {
       store.appendOperatorProposal(proposal(ref, 'counterfactual:observation:missing'));
     }, /operator_proposal_residual_not_found:counterfactual:observation:missing/],
@@ -235,6 +292,15 @@ test('fails closed on dangling prediction, axes, closure operators, residuals, a
       value.proposedOperatorRef = operatorRef();
       store.appendOperatorProposal(value);
     }, /operator_proposal_already_defined:visual.op.semantic.adjust_axis@1.0.0/],
+    ['proposal timestamp does not follow its residual', (store, ref) => {
+      const predicted = prediction(ref);
+      store.appendCounterfactualPrediction(predicted);
+      const observed = observation(predicted.predictionId);
+      store.appendCounterfactualObservation(observed);
+      const value = proposal(ref, observed.observationId);
+      value.recordedAt = observed.recordedAt;
+      store.appendOperatorProposal(value);
+    }, /operator_proposal_not_after_residual:counterfactual:observation:store:001/],
   ];
 
   for (const [name, action, expected] of cases) {
