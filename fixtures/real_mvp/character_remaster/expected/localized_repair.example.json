@@ -1,0 +1,71 @@
+{
+  "schema": "eve-atelier-localized-repair-config-example/v1",
+  "provider": {
+    "type": "comfyui",
+    "workflowPath": "provider/comfyui-sd15-localized-inpaint-api.json",
+    "bindings": {
+      "sourceImage": {
+        "nodeId": "2",
+        "input": "image"
+      },
+      "maskImage": {
+        "nodeId": "3",
+        "input": "image"
+      },
+      "positivePrompt": {
+        "nodeId": "4",
+        "input": "text"
+      },
+      "negativePrompt": {
+        "nodeId": "5",
+        "input": "text"
+      },
+      "seed": {
+        "nodeId": "7",
+        "input": "seed"
+      },
+      "filenamePrefix": {
+        "nodeId": "10",
+        "input": "filename_prefix"
+      }
+    },
+    "outputNodeId": "10",
+    "model": {
+      "id": "stable-diffusion-v1-5/stable-diffusion-v1-5",
+      "revision": "451f4fe16113bff5a5d2269ed5ad43b0592e9a14",
+      "file": "v1-5-pruned-emaonly.safetensors",
+      "sha256": "6ce0161689b3853acaa03779ec93eafe75a02f4ced659bee03f50797806fa2fa",
+      "allowDownload": false
+    }
+  },
+  "localizedRepair": {
+    "taskId": "character-remaster-repair-example-001",
+    "workflowSha256": "553ca3f09f2d4d5a63f424a2b988cea697b7d6dbb8e1cfd617c7f601653882a4",
+    "candidateCount": 2,
+    "baseSeed": 42001,
+    "intentText": [
+      "Repair only the declared mask while preserving identity and composition."
+    ],
+    "negativePrompt": "identity drift, changed pose, changed composition, artifacts",
+    "mask": {
+      "width": 1280,
+      "height": 1280,
+      "featherRadius": 6,
+      "regions": [
+        {
+          "kind": "rectangle",
+          "x": 0.35,
+          "y": 0.75,
+          "width": 0.2,
+          "height": 0.1
+        }
+      ]
+    },
+    "localityThresholds": {
+      "maxMaskCoverage": 0.32,
+      "minInsideChangedPixels": 1000,
+      "maxOutsideChangedPixels": 0,
+      "maxOutsideAbsoluteDelta": 0
+    }
+  }
+}

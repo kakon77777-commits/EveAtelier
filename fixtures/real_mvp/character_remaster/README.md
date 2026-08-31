@@ -28,7 +28,9 @@ workflow for a bounded repair of an already accepted/current candidate. It:
 
 The external run config adds a `localizedRepair` object containing a task ID,
 2-4 candidate seeds, intent/negative prompt, normalized mask regions, and
-locality thresholds. Run it against a persisted promoted Workbench state:
+strict locality thresholds. A complete sanitized provider/binding fragment is
+tracked at `expected/localized_repair.example.json`. Run it against a persisted
+promoted Workbench state:
 
 ```text
 npm run real-mvp:run -- localized-repair-generate-evaluate --config <config.json> --state <promoted-state.json>
@@ -39,3 +41,7 @@ state, sanitized evidence, and a human-review template. It never promotes.
 Acceptance requires the ordinary identity/style/reference evaluator plus
 same dimensions, bounded mask coverage, a non-zero masked effect, and zero
 changed pixels outside the mask.
+
+The command refuses to reuse an existing output directory. An interrupted
+batch remains evidence and must be continued under a new task/runtime directory;
+fixed filenames are never overwritten by an automatic retry.

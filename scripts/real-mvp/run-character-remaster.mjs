@@ -1,10 +1,14 @@
-import { readFile, mkdir, writeFile } from 'node:fs/promises';
+import { createHash } from 'node:crypto';
+import { readFile, mkdir, stat, writeFile } from 'node:fs/promises';
 import { dirname, isAbsolute, join, resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { bindReferenceRoles } from '../../src/character-remaster/contracts.js';
 import { CandidateBatchRunner } from '../../src/character-remaster/candidate-batch-runner.js';
 import { sanitizeRealMvpEvidence, classifyRealMvpEvidence } from '../../src/character-remaster/evidence.js';
-import { LocalizedRepairRunner } from '../../src/character-remaster/localized-repair.js';
+import {
+  LocalizedRepairRunner,
+  localizedRepairThresholdsStatus,
+} from '../../src/character-remaster/localized-repair.js';
 import { PythonCharacterRemasterEvaluator } from '../../src/character-remaster/python-evaluator.js';
 import { ComfyUiProvider } from '../../src/providers/comfyui-provider.js';
 import { DiffusersProvider } from '../../src/providers/diffusers-provider.js';
@@ -89,15 +93,87 @@ export function validateLocalizedRepairConfig(value) {
   if (!Array.isArray(value.mask.regions) || value.mask.regions.length === 0) {
     throw new TypeError('localized_repair_regions_required');
   }
-  if (!value.localityThresholds || [
-    'maxMaskCoverage',
-    'minInsideChangedPixels',
-    'maxOutsideChangedPixels',
-    'maxOutsideAbsoluteDelta',
-  ].some(key => !Number.isFinite(value.localityThresholds[key]))) {
+  const thresholdStatus = localizedRepairThresholdsStatus(value.localityThresholds);
+  if (thresholdStatus === 'missing') {
     throw new TypeError('localized_repair_thresholds_required');
   }
+  if (thresholdStatus === 'invalid') throw new TypeError('localized_repair_thresholds_invalid');
   return structuredClone(value);
+}
+
+export function localizedRepairWorkflowDigest(value) {
+  const text = Buffer.isBuffer(value) ? value.toString('utf8') : String(value);
+  const workflow = JSON.parse(text);
+  if (!workflow || typeof workflow !== 'object' || Array.isArray(workflow)) {
+    throw new Error('localized_repair_workflow_invalid');
+  }
+  return createHash('sha256').update(JSON.stringify(workflow)).digest('hex');
+}
+
+export function validateLocalizedRepairExecutionGate({ config, repair, workflowSha256 }) {
+  const provider = config?.provider;
+  if (provider?.type !== 'comfyui') throw new Error('localized_repair_comfyui_required');
+  if (provider.model?.allowDownload === true) throw new Error('localized_repair_model_download_forbidden');
+  if (!provider.bindings?.maskImage
+      || typeof provider.bindings.maskImage.nodeId !== 'string'
+      || typeof provider.bindings.maskImage.input !== 'string') {
+    throw new Error('localized_repair_mask_binding_required');
+  }
+  if (typeof provider.outputNodeId !== 'string' || provider.outputNodeId.length === 0) {
+    throw new Error('localized_repair_output_node_required');
+  }
+  const model = provider.model;
+  if (!model
+      || ['id', 'revision', 'file', 'sha256'].some(key => typeof model[key] !== 'string' || !model[key])
+      || !/^[a-f0-9]{64}$/i.test(model.sha256)) {
+    throw new Error('localized_repair_model_identity_required');
+  }
+  if (typeof repair?.workflowSha256 !== 'string'
+      || !/^[a-f0-9]{64}$/i.test(repair.workflowSha256)) {
+    throw new Error('localized_repair_workflow_hash_required');
+  }
+  if (workflowSha256 !== repair.workflowSha256) {
+    throw new Error('localized_repair_workflow_hash_mismatch');
+  }
+}
+
+export function validateLocalizedRepairWorkbench(workbench, documentId) {
+  const document = workbench.getDocument(documentId);
+  if (document.promotionPolicy !== 'human_required') {
+    throw new Error('localized_repair_human_policy_required');
+  }
+  return document;
+}
+
+export function validateLocalizedRepairMaskPreflight({
+  repair,
+  maskEvidence,
+  actualMaskSha256,
+  parentLocality,
+}) {
+  if (!maskEvidence
+      || maskEvidence.width !== repair?.mask?.width
+      || maskEvidence.height !== repair?.mask?.height
+      || parentLocality?.sameDimensions !== true
+      || parentLocality.totalPixels !== repair.mask.width * repair.mask.height) {
+    throw new Error('localized_repair_mask_dimensions_mismatch');
+  }
+  if (!Number.isInteger(maskEvidence.nonZeroPixels)
+      || maskEvidence.nonZeroPixels <= 0
+      || parentLocality.maskPixels !== maskEvidence.nonZeroPixels
+      || !Number.isFinite(maskEvidence.maskCoverage)
+      || maskEvidence.maskCoverage <= 0) {
+    throw new Error('localized_repair_mask_empty');
+  }
+  if (maskEvidence.maskCoverage > repair.localityThresholds.maxMaskCoverage) {
+    throw new Error('localized_repair_scope_too_large');
+  }
+  if (maskEvidence.sha256 !== actualMaskSha256) {
+    throw new Error('localized_repair_mask_hash_mismatch');
+  }
+  if (Math.abs(parentLocality.maskCoverage - maskEvidence.maskCoverage) > 1e-12) {
+    throw new Error('localized_repair_mask_evidence_mismatch');
+  }
 }
 
 async function readJson(path) {
@@ -266,6 +342,15 @@ export async function localizedRepairGenerateEvaluate({
 }) {
   const inputs = await loadInputs(configPath);
   const repair = validateLocalizedRepairConfig(inputs.config.localizedRepair);
+  const workflowPath = relativeTo(inputs.configDirectory, inputs.config.provider?.workflowPath ?? '');
+  const workflowSha256 = inputs.config.provider?.type === 'comfyui'
+    ? localizedRepairWorkflowDigest(await readFile(workflowPath))
+    : null;
+  validateLocalizedRepairExecutionGate({
+    config: inputs.config,
+    repair,
+    workflowSha256,
+  });
   validateExecutionGate({
     command: 'generate-evaluate',
     env,
@@ -274,6 +359,7 @@ export async function localizedRepairGenerateEvaluate({
   });
   const state = await readJson(resolve(statePath));
   const workbench = EveAtelierWorkbench.fromState(state);
+  validateLocalizedRepairWorkbench(workbench, inputs.config.documentId);
   const parent = workbench.getCurrentVersion(inputs.config.documentId);
   const provider = providedProvider
     ?? await generationProvider(inputs.config, inputs.configDirectory, env);
@@ -293,15 +379,32 @@ export async function localizedRepairGenerateEvaluate({
   }
 
   const outputDirectory = runtimeDirectory(inputs.config, inputs.configDirectory, repair.taskId);
+  let outputExists = false;
+  try {
+    await stat(outputDirectory);
+    outputExists = true;
+  } catch (error) {
+    if (error?.code !== 'ENOENT') throw error;
+  }
+  if (outputExists) throw new Error('localized_repair_output_exists');
   await mkdir(outputDirectory, { recursive: true });
   const maskPath = join(outputDirectory, 'repair-mask.png');
   const maskEvidence = await evaluator.buildLocalizedRepairMask({
     ...repair.mask,
     outputPath: maskPath,
   });
-  if (maskEvidence.maskCoverage > repair.localityThresholds.maxMaskCoverage) {
-    throw new Error('localized_repair_scope_too_large');
-  }
+  const actualMaskSha256 = createHash('sha256').update(await readFile(maskPath)).digest('hex');
+  const parentLocality = await evaluator.evaluateLocalizedRepair({
+    parentPath: parent.assetPath,
+    candidatePath: parent.assetPath,
+    maskPath,
+  });
+  validateLocalizedRepairMaskPreflight({
+    repair,
+    maskEvidence,
+    actualMaskSha256,
+    parentLocality,
+  });
   const batch = await new LocalizedRepairRunner().run({
     workbench,
     documentId: inputs.config.documentId,

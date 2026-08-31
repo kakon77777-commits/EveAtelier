@@ -67,7 +67,7 @@ test('requests repair when the localized operation is a no-op', () => {
 test('rejects a repair mask that exceeds the bounded locality scope', () => {
   const result = decideLocalizedRepairVerdict({
     globalEvaluation: { verdict: 'ACCEPT', warnings: [] },
-    locality: { ...locality, maskCoverage: 0.31 },
+    locality: { ...locality, maskPixels: 31, maskCoverage: 0.31 },
     thresholds,
   });
 
@@ -123,11 +123,56 @@ test('keeps localized repair unverified when locality thresholds are incomplete'
   assert.deepEqual(result.failures, ['localized_repair_thresholds_required']);
 });
 
+test('does not allow thresholds to weaken zero-change locality invariants', () => {
+  const result = decideLocalizedRepairVerdict({
+    globalEvaluation: { verdict: 'ACCEPT', warnings: [] },
+    locality: { ...locality, outsideChangedPixels: 7 },
+    thresholds: { ...thresholds, maxOutsideChangedPixels: 7 },
+  });
+
+  assert.equal(result.verdict, 'UNVERIFIED');
+  assert.deepEqual(result.failures, ['localized_repair_thresholds_invalid']);
+});
+
 test('keeps localized repair unverified when global evaluation is missing', () => {
   const result = decideLocalizedRepairVerdict({ locality, thresholds });
 
   assert.equal(result.verdict, 'UNVERIFIED');
   assert.deepEqual(result.failures, ['global_evaluation_required']);
+});
+
+test('keeps localized repair unverified when locality evidence is incomplete', () => {
+  const incomplete = { ...locality };
+  delete incomplete.outsideChangedPixels;
+  const result = decideLocalizedRepairVerdict({
+    globalEvaluation: { verdict: 'ACCEPT', warnings: [] },
+    locality: incomplete,
+    thresholds,
+  });
+
+  assert.equal(result.verdict, 'UNVERIFIED');
+  assert.deepEqual(result.failures, ['localized_repair_evidence_invalid']);
+});
+
+test('rejects malformed or internally inconsistent locality metrics', () => {
+  const invalidCases = [
+    { ...locality, totalPixels: 0 },
+    { ...locality, maskPixels: 0, maskCoverage: 0 },
+    { ...locality, maskPixels: 10, maskCoverage: 0.20 },
+    { ...locality, insideChangedPixels: 21 },
+    { ...locality, outsideChangedPixels: -1 },
+    { ...locality, outsideMaxAbsoluteDelta: 256 },
+    { ...locality, sameDimensions: 'true' },
+  ];
+  for (const invalid of invalidCases) {
+    const result = decideLocalizedRepairVerdict({
+      globalEvaluation: { verdict: 'ACCEPT', warnings: [] },
+      locality: invalid,
+      thresholds,
+    });
+    assert.equal(result.verdict, 'UNVERIFIED');
+    assert.deepEqual(result.failures, ['localized_repair_evidence_invalid']);
+  }
 });
 
 test('stages repair candidates from the current parent without mutating or promoting it', async () => {

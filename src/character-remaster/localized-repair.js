@@ -25,13 +25,52 @@ function requestDigest(request) {
   })).digest('hex');
 }
 
-export function decideLocalizedRepairVerdict({ globalEvaluation, locality, thresholds } = {}) {
-  const thresholdsComplete = [
+function localityEvidenceValid(value) {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return false;
+  if (typeof value.sameDimensions !== 'boolean') return false;
+  if (!Number.isInteger(value.totalPixels) || value.totalPixels <= 0) return false;
+  if (!Number.isInteger(value.maskPixels)
+      || value.maskPixels <= 0
+      || value.maskPixels > value.totalPixels) return false;
+  if (!Number.isFinite(value.maskCoverage)
+      || value.maskCoverage <= 0
+      || value.maskCoverage > 1
+      || Math.abs(value.maskCoverage - (value.maskPixels / value.totalPixels)) > 1e-12) return false;
+  if (!Number.isInteger(value.insideChangedPixels)
+      || value.insideChangedPixels < 0
+      || value.insideChangedPixels > value.maskPixels) return false;
+  if (!Number.isInteger(value.outsideChangedPixels)
+      || value.outsideChangedPixels < 0
+      || value.outsideChangedPixels > value.totalPixels - value.maskPixels) return false;
+  if (!Number.isInteger(value.outsideMaxAbsoluteDelta)
+      || value.outsideMaxAbsoluteDelta < 0
+      || value.outsideMaxAbsoluteDelta > 255) return false;
+  return true;
+}
+
+export function localizedRepairThresholdsStatus(value) {
+  const required = [
     'maxMaskCoverage',
     'minInsideChangedPixels',
     'maxOutsideChangedPixels',
     'maxOutsideAbsoluteDelta',
-  ].every(key => Number.isFinite(thresholds?.[key]));
+  ];
+  if (!value || typeof value !== 'object' || required.some(key => !Number.isFinite(value[key]))) {
+    return 'missing';
+  }
+  if (value.maxMaskCoverage <= 0
+      || value.maxMaskCoverage > 1
+      || !Number.isInteger(value.minInsideChangedPixels)
+      || value.minInsideChangedPixels <= 0
+      || value.maxOutsideChangedPixels !== 0
+      || value.maxOutsideAbsoluteDelta !== 0) {
+    return 'invalid';
+  }
+  return 'valid';
+}
+
+export function decideLocalizedRepairVerdict({ globalEvaluation, locality, thresholds } = {}) {
+  const thresholdStatus = localizedRepairThresholdsStatus(thresholds);
   const globalVerdicts = new Set(['ACCEPT', 'ACCEPT_WITH_WARNINGS', 'REPAIR', 'REJECT', 'UNVERIFIED']);
   const globalEvaluationPresent = globalVerdicts.has(globalEvaluation?.verdict);
   const outsideChanged = locality?.outsideChangedPixels > thresholds?.maxOutsideChangedPixels
@@ -40,9 +79,15 @@ export function decideLocalizedRepairVerdict({ globalEvaluation, locality, thres
   const invalidScope = locality?.maskCoverage > thresholds?.maxMaskCoverage;
   let verdict;
   let failures;
-  if (!thresholdsComplete) {
+  if (thresholdStatus === 'missing') {
     verdict = 'UNVERIFIED';
     failures = ['localized_repair_thresholds_required'];
+  } else if (thresholdStatus === 'invalid') {
+    verdict = 'UNVERIFIED';
+    failures = ['localized_repair_thresholds_invalid'];
+  } else if (!localityEvidenceValid(locality)) {
+    verdict = 'UNVERIFIED';
+    failures = ['localized_repair_evidence_invalid'];
   } else if (!globalEvaluationPresent) {
     verdict = 'UNVERIFIED';
     failures = ['global_evaluation_required'];
