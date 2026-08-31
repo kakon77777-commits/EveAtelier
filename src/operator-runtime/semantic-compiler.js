@@ -5,7 +5,13 @@ function allOperators(pack) {
 }
 
 function planState(status) {
-  if (status === 'ACTIVE') return { status: 'READY', executable: true, blockers: [] };
+  if (status === 'ACTIVE') {
+    return {
+      status: 'READY',
+      executable: false,
+      blockers: ['operator_plan_execution_compiler_not_implemented'],
+    };
+  }
   if (['EXPERIMENTAL_UNCALIBRATED', 'CALIBRATED'].includes(status)) {
     return { status: 'UNVERIFIED', executable: false, blockers: ['operator_pack_not_active'] };
   }

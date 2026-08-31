@@ -71,8 +71,8 @@ test('projects lifecycle maturity into BLOCKED, READY, and DEPRECATED plans', ()
     transition(store, ref, 'lifecycle:active-ready-test', 'CALIBRATED', 'ACTIVE');
     const ready = compileSemanticDirective({ store, directive });
     assert.equal(ready.status, 'READY');
-    assert.equal(ready.executable, true);
-    assert.deepEqual(ready.blockers, []);
+    assert.equal(ready.executable, false);
+    assert.deepEqual(ready.blockers, ['operator_plan_execution_compiler_not_implemented']);
 
     transition(store, ref, 'lifecycle:deprecated-ready-test', 'ACTIVE', 'DEPRECATED');
     const deprecated = compileSemanticDirective({ store, directive });
