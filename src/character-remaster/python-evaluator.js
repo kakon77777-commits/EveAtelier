@@ -58,4 +58,24 @@ export class PythonCharacterRemasterEvaluator {
     }));
     return decideCharacterRemasterVerdict(evidence);
   }
+
+  async buildLocalizedRepairMask({ width, height, regions, featherRadius = 0, outputPath }) {
+    return requireObject(this.invoke({
+      action: 'build_localized_repair_mask',
+      width,
+      height,
+      regions,
+      featherRadius,
+      outputPath,
+    }));
+  }
+
+  async evaluateLocalizedRepair({ parentPath, candidatePath, maskPath }) {
+    return requireObject(this.invoke({
+      action: 'evaluate_localized_repair',
+      parentPath,
+      candidatePath,
+      maskPath,
+    }));
+  }
 }

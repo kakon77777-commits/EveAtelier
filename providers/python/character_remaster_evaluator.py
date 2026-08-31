@@ -15,6 +15,138 @@ EVALUATOR_ID = "evaluator:clip-hybrid"
 EVALUATOR_VERSION = "0.1.0"
 
 
+def normalized_number(value, label):
+    if isinstance(value, bool) or not isinstance(value, (int, float)):
+        raise ValueError(f"{label}_must_be_number")
+    result = float(value)
+    if result < 0.0 or result > 1.0:
+        raise ValueError(f"{label}_must_be_normalized")
+    return result
+
+
+def build_localized_repair_mask(request):
+    from PIL import Image, ImageDraw, ImageFilter
+
+    width = request.get("width")
+    height = request.get("height")
+    if isinstance(width, bool) or not isinstance(width, int) or width <= 0:
+        raise ValueError("mask_width_invalid")
+    if isinstance(height, bool) or not isinstance(height, int) or height <= 0:
+        raise ValueError("mask_height_invalid")
+    regions = request.get("regions")
+    if not isinstance(regions, list) or not regions:
+        raise ValueError("repair_regions_required")
+    feather_radius = request.get("featherRadius", 0)
+    if isinstance(feather_radius, bool) or not isinstance(feather_radius, (int, float)) or feather_radius < 0:
+        raise ValueError("feather_radius_invalid")
+    output_path = request.get("outputPath")
+    if not isinstance(output_path, str) or not output_path:
+        raise ValueError("mask_output_path_required")
+
+    mask = Image.new("L", (width, height), 0)
+    draw = ImageDraw.Draw(mask)
+    for index, region in enumerate(regions):
+        if not isinstance(region, dict):
+            raise ValueError(f"repair_region_invalid:{index}")
+        kind = region.get("kind")
+        if kind in ("rectangle", "ellipse"):
+            x = normalized_number(region.get("x"), f"region_{index}_x")
+            y = normalized_number(region.get("y"), f"region_{index}_y")
+            region_width = normalized_number(region.get("width"), f"region_{index}_width")
+            region_height = normalized_number(region.get("height"), f"region_{index}_height")
+            if region_width <= 0 or region_height <= 0 or x + region_width > 1 or y + region_height > 1:
+                raise ValueError(f"repair_region_bounds_invalid:{index}")
+            box = (
+                round(x * width),
+                round(y * height),
+                round((x + region_width) * width) - 1,
+                round((y + region_height) * height) - 1,
+            )
+            if kind == "rectangle":
+                draw.rectangle(box, fill=255)
+            else:
+                draw.ellipse(box, fill=255)
+        elif kind == "polygon":
+            points = region.get("points")
+            if not isinstance(points, list) or len(points) < 3:
+                raise ValueError(f"repair_polygon_invalid:{index}")
+            normalized_points = []
+            for point_index, point in enumerate(points):
+                if not isinstance(point, list) or len(point) != 2:
+                    raise ValueError(f"repair_polygon_point_invalid:{index}:{point_index}")
+                x = normalized_number(point[0], f"region_{index}_point_{point_index}_x")
+                y = normalized_number(point[1], f"region_{index}_point_{point_index}_y")
+                normalized_points.append((round(x * (width - 1)), round(y * (height - 1))))
+            draw.polygon(normalized_points, fill=255)
+        else:
+            raise ValueError(f"repair_region_kind_invalid:{kind}")
+
+    if feather_radius > 0:
+        mask = mask.filter(ImageFilter.GaussianBlur(radius=float(feather_radius)))
+    target = Path(output_path)
+    target.parent.mkdir(parents=True, exist_ok=True)
+    mask.save(target, format="PNG")
+    payload = target.read_bytes()
+    non_zero = sum(mask.histogram()[1:])
+    return {
+        "width": width,
+        "height": height,
+        "nonZeroPixels": non_zero,
+        "maskCoverage": non_zero / float(width * height),
+        "sha256": hashlib.sha256(payload).hexdigest(),
+        "bytes": len(payload),
+    }
+
+
+def evaluate_localized_repair(request):
+    from PIL import Image
+    import numpy as np
+
+    paths = {}
+    for key in ("parentPath", "candidatePath", "maskPath"):
+        value = request.get(key)
+        if not isinstance(value, str) or not value:
+            raise ValueError(f"{key}_required")
+        paths[key] = Path(value)
+
+    with Image.open(paths["parentPath"]) as image:
+        parent = np.asarray(image.convert("RGBA"), dtype=np.int16)
+    with Image.open(paths["candidatePath"]) as image:
+        candidate = np.asarray(image.convert("RGBA"), dtype=np.int16)
+    with Image.open(paths["maskPath"]) as image:
+        mask = np.asarray(image.convert("L"), dtype=np.uint8)
+
+    same_dimensions = parent.shape == candidate.shape and parent.shape[:2] == mask.shape
+    result = {
+        "sameDimensions": bool(same_dimensions),
+        "parentSha256": hashlib.sha256(paths["parentPath"].read_bytes()).hexdigest(),
+        "candidateSha256": hashlib.sha256(paths["candidatePath"].read_bytes()).hexdigest(),
+        "maskSha256": hashlib.sha256(paths["maskPath"].read_bytes()).hexdigest(),
+    }
+    if not same_dimensions:
+        return result
+
+    inside = mask > 0
+    outside = ~inside
+    mask_pixels = int(inside.sum())
+    if mask_pixels == 0:
+        raise ValueError("localized_repair_mask_empty")
+    delta = np.abs(candidate - parent)
+    changed = np.any(delta > 0, axis=2)
+    total_pixels = int(mask.size)
+    result.update({
+        "totalPixels": total_pixels,
+        "maskPixels": mask_pixels,
+        "maskCoverage": mask_pixels / float(total_pixels),
+        "insideChangedPixels": int((changed & inside).sum()),
+        "outsideChangedPixels": int((changed & outside).sum()),
+        "insideMeanAbsoluteError": float(delta[inside].mean()),
+        "outsideMeanAbsoluteError": float(delta[outside].mean()) if outside.any() else 0.0,
+        "outsideMaxAbsoluteDelta": int(delta[outside].max()) if outside.any() else 0,
+    })
+    return result
+
+
 def artifact(path):
     from PIL import Image
     import numpy as np
@@ -227,6 +359,10 @@ def main(request):
         return probe(request.get("model"))
     if action == "evaluate":
         return evaluate(request)
+    if action == "build_localized_repair_mask":
+        return build_localized_repair_mask(request)
+    if action == "evaluate_localized_repair":
+        return evaluate_localized_repair(request)
     raise ValueError("unsupported_action")
 
 

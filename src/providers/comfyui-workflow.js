@@ -32,5 +32,8 @@ export function compileComfyWorkflow({ workflow, bindings, request } = {}) {
   setBinding(compiled, bindings.negativePrompt, request.negativePrompt ?? '', 'negativePrompt');
   setBinding(compiled, bindings.seed, request.seed, 'seed');
   setBinding(compiled, bindings.filenamePrefix, request.filenamePrefix, 'filenamePrefix');
+  if (request.maskImageName !== undefined) {
+    setBinding(compiled, bindings.maskImage, request.maskImageName, 'maskImage');
+  }
   return compiled;
 }

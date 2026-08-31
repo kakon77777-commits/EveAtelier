@@ -109,6 +109,49 @@ test('tracked SD1.5 image-to-image workflow compiles into core ComfyUI nodes', a
   assert.equal(compiled['8'].inputs.filename_prefix, 'eve/character-remaster-001');
 });
 
+test('tracked localized inpaint workflow composites repaired pixels over the unchanged parent', async () => {
+  const trackedWorkflow = JSON.parse(await readFile(
+    'fixtures/real_mvp/character_remaster/provider/comfyui-sd15-localized-inpaint-api.json',
+    'utf8',
+  ));
+  const compiled = compileComfyWorkflow({
+    workflow: trackedWorkflow,
+    bindings: {
+      sourceImage: { nodeId: '2', input: 'image' },
+      maskImage: { nodeId: '3', input: 'image' },
+      positivePrompt: { nodeId: '4', input: 'text' },
+      negativePrompt: { nodeId: '5', input: 'text' },
+      seed: { nodeId: '7', input: 'seed' },
+      filenamePrefix: { nodeId: '10', input: 'filename_prefix' },
+    },
+    request: {
+      sourceImageName: 'eve/parent.png',
+      maskImageName: 'eve/mask.png',
+      intentText: ['repair ornate metal, embroidery, and hand anatomy'],
+      negativePrompt: 'identity drift',
+      seed: 42001,
+      filenamePrefix: 'eve/localized-repair-001',
+    },
+  });
+
+  assert.equal(compiled['2'].inputs.image, 'eve/parent.png');
+  assert.equal(compiled['3'].class_type, 'LoadImageMask');
+  assert.equal(compiled['3'].inputs.image, 'eve/mask.png');
+  assert.equal(compiled['6'].class_type, 'VAEEncode');
+  assert.deepEqual(compiled['6'].inputs.pixels, ['2', 0]);
+  assert.equal(compiled['11'].class_type, 'SetLatentNoiseMask');
+  assert.deepEqual(compiled['11'].inputs.samples, ['6', 0]);
+  assert.deepEqual(compiled['11'].inputs.mask, ['3', 0]);
+  assert.deepEqual(compiled['7'].inputs.latent_image, ['11', 0]);
+  assert.equal(compiled['7'].inputs.denoise, 0.20);
+  assert.equal(compiled['7'].inputs.seed, 42001);
+  assert.deepEqual(compiled['9'].inputs.destination, ['2', 0]);
+  assert.deepEqual(compiled['9'].inputs.source, ['8', 0]);
+  assert.deepEqual(compiled['9'].inputs.mask, ['3', 0]);
+  assert.deepEqual(compiled['10'].inputs.images, ['9', 0]);
+  assert.equal(compiled['10'].inputs.filename_prefix, 'eve/localized-repair-001');
+});
+
 test('ComfyUI real variation retrieves the configured output artifact exactly once', async () => {
   const directory = await mkdtemp(join(tmpdir(), 'eve-comfy-runtime-'));
   const sourcePath = join(directory, 'source.png');
@@ -187,6 +230,91 @@ test('ComfyUI real variation retrieves the configured output artifact exactly on
   assert.equal(submitted.prompt['1'].inputs.image, 'eve/source-upload.png');
   assert.equal(submitted.prompt['4'].inputs.seed, 77);
   assert.deepEqual(await readFile(outputPath), Buffer.from('real-provider-image-bytes'));
+});
+
+test('ComfyUI localized repair uploads and binds one explicit mask', async () => {
+  const directory = await mkdtemp(join(tmpdir(), 'eve-comfy-localized-'));
+  const sourcePath = join(directory, 'parent.png');
+  const maskPath = join(directory, 'repair-mask.png');
+  const outputPath = join(directory, 'repair.png');
+  await writeFile(sourcePath, 'parent-image-bytes');
+  await writeFile(maskPath, 'mask-image-bytes');
+  let submitted;
+  let uploadCount = 0;
+
+  await withServer((request, response) => {
+    if (request.method === 'POST' && request.url === '/upload/image') {
+      uploadCount += 1;
+      request.resume();
+      request.on('end', () => {
+        response.setHeader('content-type', 'application/json');
+        response.end(JSON.stringify({
+          name: uploadCount === 1 ? 'parent-upload.png' : 'mask-upload.png',
+          subfolder: 'eve',
+          type: 'input',
+        }));
+      });
+      return;
+    }
+    if (request.method === 'POST' && request.url === '/prompt') {
+      let body = '';
+      request.on('data', chunk => { body += chunk; });
+      request.on('end', () => {
+        submitted = JSON.parse(body);
+        response.setHeader('content-type', 'application/json');
+        response.end(JSON.stringify({ prompt_id: 'repair-prompt-1', number: 2 }));
+      });
+      return;
+    }
+    if (request.method === 'GET' && request.url === '/history/repair-prompt-1') {
+      response.setHeader('content-type', 'application/json');
+      response.end(JSON.stringify({
+        'repair-prompt-1': {
+          status: { status_str: 'success', completed: true },
+          outputs: {
+            '6': {
+              images: [{ filename: 'repair.png', subfolder: 'eve', type: 'output' }],
+            },
+          },
+        },
+      }));
+      return;
+    }
+    if (request.method === 'GET' && request.url === '/view?filename=repair.png&subfolder=eve&type=output') {
+      response.setHeader('content-type', 'image/png');
+      response.end(Buffer.from('localized-repair-image-bytes'));
+      return;
+    }
+    response.statusCode = 404;
+    response.end();
+  }, async baseUrl => {
+    const repairWorkflow = structuredClone(workflow);
+    repairWorkflow['7'] = { class_type: 'LoadImageMask', inputs: { image: 'old-mask.png', channel: 'red' } };
+    const provider = new ComfyUiProvider({
+      baseUrl,
+      workflow: repairWorkflow,
+      bindings: {
+        ...bindings,
+        maskImage: { nodeId: '7', input: 'image' },
+      },
+      outputNodeId: '6',
+      modelIdentity: { id: 'checkpoint:test', revision: 'sha256:test' },
+      clientId: 'eve-real-mvp',
+      pollIntervalMs: 0,
+      maxWaitMs: 1000,
+      sleep: async () => {},
+    });
+    const request = generationRequest({ sourcePath, outputPath });
+    request.operatorId = 'visual.op.generative.inpaint';
+    request.mask = { path: maskPath, sha256: 'b'.repeat(64), bytes: 16 };
+    const result = await provider.generateVariation(request);
+    assert.equal(result.evidence.maskUpload.workflowName, 'eve/mask-upload.png');
+  });
+
+  assert.equal(uploadCount, 2);
+  assert.equal(submitted.prompt['1'].inputs.image, 'eve/parent-upload.png');
+  assert.equal(submitted.prompt['7'].inputs.image, 'eve/mask-upload.png');
+  assert.deepEqual(await readFile(outputPath), Buffer.from('localized-repair-image-bytes'));
 });
 
 test('Diffusers variation requires an explicit local model and labels fixtures honestly', async () => {

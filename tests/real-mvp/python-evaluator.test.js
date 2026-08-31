@@ -1,6 +1,9 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
+import { mkdtemp } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { PythonCharacterRemasterEvaluator } from '../../src/character-remaster/python-evaluator.js';
 
 const passingEvidence = {
@@ -73,6 +76,59 @@ test('derives the final verdict from independent evaluator evidence', async () =
   });
   assert.equal(result.verdict, 'ACCEPT');
   assert.deepEqual(result.scores, passingEvidence.scores);
+});
+
+test('builds a deterministic normalized mask for localized repair', async () => {
+  const directory = await mkdtemp(join(tmpdir(), 'eve-localized-mask-'));
+  const outputPath = join(directory, 'mask.png');
+  const evaluator = new PythonCharacterRemasterEvaluator({ python: 'python3' });
+
+  const result = await evaluator.buildLocalizedRepairMask({
+    width: 16,
+    height: 16,
+    featherRadius: 0,
+    regions: [{ kind: 'rectangle', x: 0.25, y: 0.25, width: 0.25, height: 0.25 }],
+    outputPath,
+  });
+
+  assert.equal(result.width, 16);
+  assert.equal(result.height, 16);
+  assert.equal(result.nonZeroPixels, 16);
+  assert.equal(result.maskCoverage, 0.0625);
+  assert.match(result.sha256, /^[a-f0-9]{64}$/);
+});
+
+test('measures pixel changes inside and outside the localized repair mask', async () => {
+  const directory = await mkdtemp(join(tmpdir(), 'eve-localized-evaluation-'));
+  const parentPath = join(directory, 'parent.png');
+  const candidatePath = join(directory, 'candidate.png');
+  const maskPath = join(directory, 'mask.png');
+  const fixture = spawnSync('python3', ['-c', [
+    'from PIL import Image, ImageDraw',
+    'import sys',
+    "parent=Image.new('RGB',(8,8),(10,20,30))",
+    'candidate=parent.copy()',
+    'for y in range(2,4):',
+    '  for x in range(2,4): candidate.putpixel((x,y),(110,20,30))',
+    "mask=Image.new('L',(8,8),0)",
+    'ImageDraw.Draw(mask).rectangle((2,2,3,3),fill=255)',
+    'parent.save(sys.argv[1])',
+    'candidate.save(sys.argv[2])',
+    'mask.save(sys.argv[3])',
+  ].join('\n'), parentPath, candidatePath, maskPath], { encoding: 'utf8' });
+  assert.equal(fixture.status, 0, fixture.stderr || fixture.stdout);
+
+  const evaluator = new PythonCharacterRemasterEvaluator({ python: 'python3' });
+  const result = await evaluator.evaluateLocalizedRepair({ parentPath, candidatePath, maskPath });
+
+  assert.equal(result.sameDimensions, true);
+  assert.equal(result.totalPixels, 64);
+  assert.equal(result.maskPixels, 4);
+  assert.equal(result.maskCoverage, 0.0625);
+  assert.equal(result.insideChangedPixels, 4);
+  assert.equal(result.outsideChangedPixels, 0);
+  assert.equal(result.outsideMaxAbsoluteDelta, 0);
+  assert.ok(result.insideMeanAbsoluteError > 0);
 });
 
 test('normalizes tensor and pooled model image-feature outputs', () => {

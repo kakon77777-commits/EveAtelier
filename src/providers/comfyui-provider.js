@@ -123,6 +123,7 @@ export class ComfyUiProvider {
     if (!this.workflow || !this.bindings) throw new Error('comfyui_workflow_configuration_required');
     if (!this.modelIdentity) throw new Error('comfyui_model_identity_required');
     const upload = await this.#uploadSource(request.source.path);
+    const maskUpload = request.mask ? await this.#uploadSource(request.mask.path) : null;
     const filenamePrefix = `eve/${request.operationId.replace(/[^a-zA-Z0-9_-]+/g, '-')}`;
     const compiled = compileComfyWorkflow({
       workflow: this.workflow,
@@ -130,6 +131,7 @@ export class ComfyUiProvider {
       request: {
         ...request,
         sourceImageName: upload.workflowName,
+        maskImageName: maskUpload?.workflowName,
         filenamePrefix,
       },
     });
@@ -153,7 +155,12 @@ export class ComfyUiProvider {
       parameterDigest,
       startedAt,
       finishedAt: new Date().toISOString(),
-      evidence: { upload, output, queueNumber: queued.queueNumber },
+      evidence: {
+        upload,
+        ...(maskUpload ? { maskUpload } : {}),
+        output,
+        queueNumber: queued.queueNumber,
+      },
     };
   }
 }

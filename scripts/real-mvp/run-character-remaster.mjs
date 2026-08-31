@@ -4,6 +4,7 @@ import { pathToFileURL } from 'node:url';
 import { bindReferenceRoles } from '../../src/character-remaster/contracts.js';
 import { CandidateBatchRunner } from '../../src/character-remaster/candidate-batch-runner.js';
 import { sanitizeRealMvpEvidence, classifyRealMvpEvidence } from '../../src/character-remaster/evidence.js';
+import { LocalizedRepairRunner } from '../../src/character-remaster/localized-repair.js';
 import { PythonCharacterRemasterEvaluator } from '../../src/character-remaster/python-evaluator.js';
 import { ComfyUiProvider } from '../../src/providers/comfyui-provider.js';
 import { DiffusersProvider } from '../../src/providers/diffusers-provider.js';
@@ -60,6 +61,43 @@ export function validateExecutionGate({
       throw new Error('human_review_candidate_mismatch');
     }
   }
+}
+
+export function validateLocalizedRepairConfig(value) {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    throw new TypeError('localized_repair_config_required');
+  }
+  if (typeof value.taskId !== 'string' || value.taskId.length === 0) {
+    throw new TypeError('localized_repair_task_id_required');
+  }
+  if (!Number.isInteger(value.candidateCount) || value.candidateCount < 2 || value.candidateCount > 4) {
+    throw new RangeError('localized_repair_candidate_count_must_be_2_to_4');
+  }
+  if (!Number.isSafeInteger(value.baseSeed) || value.baseSeed < 0) {
+    throw new RangeError('localized_repair_base_seed_invalid');
+  }
+  if (!Array.isArray(value.intentText)
+      || value.intentText.length === 0
+      || value.intentText.some(line => typeof line !== 'string' || line.trim().length === 0)) {
+    throw new TypeError('localized_repair_intent_required');
+  }
+  if (!value.mask || typeof value.mask !== 'object') throw new TypeError('localized_repair_mask_required');
+  if (!Number.isInteger(value.mask.width) || value.mask.width <= 0
+      || !Number.isInteger(value.mask.height) || value.mask.height <= 0) {
+    throw new RangeError('localized_repair_mask_dimensions_invalid');
+  }
+  if (!Array.isArray(value.mask.regions) || value.mask.regions.length === 0) {
+    throw new TypeError('localized_repair_regions_required');
+  }
+  if (!value.localityThresholds || [
+    'maxMaskCoverage',
+    'minInsideChangedPixels',
+    'maxOutsideChangedPixels',
+    'maxOutsideAbsoluteDelta',
+  ].some(key => !Number.isFinite(value.localityThresholds[key]))) {
+    throw new TypeError('localized_repair_thresholds_required');
+  }
+  return structuredClone(value);
 }
 
 async function readJson(path) {
@@ -219,6 +257,150 @@ async function generateEvaluate({ configPath, env }) {
   return { statePath, reviewPath, evidencePath, classification: classifyRealMvpEvidence(sanitized) };
 }
 
+export async function localizedRepairGenerateEvaluate({
+  configPath,
+  statePath,
+  env,
+  provider: providedProvider,
+  evaluator: providedEvaluator,
+}) {
+  const inputs = await loadInputs(configPath);
+  const repair = validateLocalizedRepairConfig(inputs.config.localizedRepair);
+  validateExecutionGate({
+    command: 'generate-evaluate',
+    env,
+    config: inputs.config,
+    thresholds: inputs.thresholds,
+  });
+  const state = await readJson(resolve(statePath));
+  const workbench = EveAtelierWorkbench.fromState(state);
+  const parent = workbench.getCurrentVersion(inputs.config.documentId);
+  const provider = providedProvider
+    ?? await generationProvider(inputs.config, inputs.configDirectory, env);
+  const evaluator = providedEvaluator ?? new PythonCharacterRemasterEvaluator({
+    python: inputs.config.python ?? 'python3',
+    model: inputs.config.evaluator.model,
+  });
+  const providerProbe = inputs.config.provider.type === 'comfyui'
+    ? await provider.probe({ includeObjectInfo: true })
+    : await provider.probe();
+  if (providerProbe.available !== true) {
+    throw new Error(`generation_provider_unavailable:${providerProbe.reason ?? 'unknown'}`);
+  }
+  const evaluatorProbe = await evaluator.probe();
+  if (evaluatorProbe.available !== true) {
+    throw new Error(`character_evaluator_unavailable:${evaluatorProbe.reason ?? 'unknown'}`);
+  }
+
+  const outputDirectory = runtimeDirectory(inputs.config, inputs.configDirectory, repair.taskId);
+  await mkdir(outputDirectory, { recursive: true });
+  const maskPath = join(outputDirectory, 'repair-mask.png');
+  const maskEvidence = await evaluator.buildLocalizedRepairMask({
+    ...repair.mask,
+    outputPath: maskPath,
+  });
+  if (maskEvidence.maskCoverage > repair.localityThresholds.maxMaskCoverage) {
+    throw new Error('localized_repair_scope_too_large');
+  }
+  const batch = await new LocalizedRepairRunner().run({
+    workbench,
+    documentId: inputs.config.documentId,
+    parentVersionId: parent.versionId,
+    identitySourcePath: inputs.assets.source.path,
+    maskPath,
+    references: inputs.assets.references,
+    provider,
+    evaluator,
+    workingDir: join(outputDirectory, 'candidates'),
+    taskId: repair.taskId,
+    intentText: repair.intentText,
+    negativePrompt: repair.negativePrompt ?? '',
+    candidateCount: repair.candidateCount,
+    baseSeed: repair.baseSeed,
+    globalThresholds: inputs.thresholds,
+    localityThresholds: repair.localityThresholds,
+  });
+  const outputStatePath = join(outputDirectory, 'workbench-state.json');
+  const reviewPath = join(outputDirectory, 'human-review.json');
+  const evidencePath = join(outputDirectory, 'generation-evaluation-evidence.json');
+  await writeJson(outputStatePath, workbench.exportState());
+  await writeJson(reviewPath, {
+    reviewId: `${repair.taskId}:review`,
+    candidateVersionId: null,
+    reviewer: { kind: 'human', id: null },
+    disposition: null,
+    reason: '',
+    reviewedAt: null,
+    evidenceClass: 'human_observed',
+    repairParentVersionId: parent.versionId,
+    candidateChoices: batch.candidates.map(candidate => ({
+      versionId: candidate.versionId,
+      artifactHash: candidate.assetHash,
+      verdict: candidate.evaluation.verdict,
+      locality: candidate.evaluation.locality,
+    })),
+  });
+  const accepted = batch.candidates.find(candidate => (
+    ['ACCEPT', 'ACCEPT_WITH_WARNINGS'].includes(candidate.evaluation.verdict)
+  ));
+  const rawEvidence = {
+    schema: 'eve-atelier-localized-repair-evidence/v1',
+    taskId: repair.taskId,
+    generation: {
+      attempted: true,
+      status: 'completed',
+      mode: batch.candidates.every(candidate => candidate.execution.mode === 'real') ? 'real' : 'fixture',
+      sourceKind: inputs.config.sourceKind,
+      candidateCount: batch.candidates.length,
+      artifactHashes: batch.candidates.map(candidate => candidate.assetHash),
+      providerProbe,
+    },
+    evaluation: {
+      status: 'completed',
+      mode: 'real',
+      evaluatorId: evaluatorProbe.evaluatorId,
+      modelId: evaluatorProbe.modelId,
+      calibrationStatus: inputs.thresholds.calibrationStatus,
+      acceptedCandidateId: accepted?.versionId ?? null,
+      candidates: batch.candidates.map(candidate => ({
+        versionId: candidate.versionId,
+        artifactHash: candidate.assetHash,
+        evaluation: candidate.evaluation,
+      })),
+    },
+    repair: {
+      parentVersionId: parent.versionId,
+      parentArtifactHash: parent.assetHash,
+      mask: {
+        width: maskEvidence.width,
+        height: maskEvidence.height,
+        nonZeroPixels: maskEvidence.nonZeroPixels,
+        maskCoverage: maskEvidence.maskCoverage,
+        sha256: batch.maskHashBefore,
+      },
+      localityThresholds: repair.localityThresholds,
+      protectedParentHashPreserved: batch.parentHashBefore === batch.parentHashAfter,
+      identitySourceHashPreserved: batch.identitySourceHashBefore === batch.identitySourceHashAfter,
+      maskHashPreserved: batch.maskHashBefore === batch.maskHashAfter,
+    },
+    humanReview: null,
+    promotion: { success: false },
+    mrmic: { live: false },
+    verification: null,
+  };
+  const sanitized = sanitizeRealMvpEvidence(rawEvidence);
+  await writeJson(evidencePath, {
+    ...sanitized,
+    classification: classifyRealMvpEvidence(sanitized),
+  });
+  return {
+    statePath: outputStatePath,
+    reviewPath,
+    evidencePath,
+    classification: classifyRealMvpEvidence(sanitized),
+  };
+}
+
 async function reviewPromoteProject({ configPath, statePath, reviewPath, env }) {
   const inputs = await loadInputs(configPath);
   const state = await readJson(resolve(statePath));
@@ -317,6 +499,14 @@ export async function main(argv = process.argv.slice(2), env = process.env) {
   if (!args.config) throw new Error('real_mvp_config_required');
   if (args.command === 'generate-evaluate') {
     return generateEvaluate({ configPath: args.config, env });
+  }
+  if (args.command === 'localized-repair-generate-evaluate') {
+    if (!args.state) throw new Error('localized_repair_state_required');
+    return localizedRepairGenerateEvaluate({
+      configPath: args.config,
+      statePath: args.state,
+      env,
+    });
   }
   if (args.command === 'review-promote-project') {
     if (!args.state || !args.review) throw new Error('state_and_review_paths_required');
