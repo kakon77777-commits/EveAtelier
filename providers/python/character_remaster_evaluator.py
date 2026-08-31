@@ -6,8 +6,10 @@ from pathlib import Path
 
 try:
     from .image_feature_output import normalized_image_features
+    from .reference_grouping import group_reference_records
 except ImportError:
     from image_feature_output import normalized_image_features
+    from reference_grouping import group_reference_records
 
 EVALUATOR_ID = "evaluator:clip-hybrid"
 EVALUATOR_VERSION = "0.1.0"
@@ -161,32 +163,34 @@ def evaluate(request):
     references = request.get("references")
     if not isinstance(references, list):
         raise ValueError("references_required")
-    by_role = {item["role"]: item["path"] for item in references}
+    by_role = group_reference_records(references, [None] * len(references))
     for role in ("line_reference", "color_reference", "negative_reference"):
         if role not in by_role:
             raise ValueError(f"missing_reference_role:{role}")
 
     model, processor, torch, transformers, device = load_model(config)
-    ordered_roles = [item["role"] for item in references]
     paths = [request["sourcePath"], request["candidatePath"], *[item["path"] for item in references]]
     features = embedding_features(paths, model, processor, torch, device)
     candidate_feature = features[1]
-    reference_features = {role: features[index + 2] for index, role in enumerate(ordered_roles)}
+    reference_groups = group_reference_records(references, features[2:])
     identity_score = cosine(features[0], candidate_feature)
-    positive_roles = [role for role in ordered_roles if role != "negative_reference"]
-    positive_similarities = [cosine(candidate_feature, reference_features[role]) for role in positive_roles]
+    positive_similarities = [
+        cosine(candidate_feature, item["feature"])
+        for role, items in reference_groups.items()
+        if role != "negative_reference"
+        for item in items
+    ]
     negative_similarity = max(
-        cosine(candidate_feature, reference_features[role])
-        for role in ordered_roles
-        if role == "negative_reference"
+        cosine(candidate_feature, item["feature"])
+        for item in reference_groups["negative_reference"]
     )
     line_alignment = cosine(
         line_histogram(request["candidatePath"]),
-        line_histogram(by_role["line_reference"]),
+        line_histogram(by_role["line_reference"][0]["path"]),
     )
     color_alignment = histogram_intersection(
         color_histogram(request["candidatePath"]),
-        color_histogram(by_role["color_reference"]),
+        color_histogram(by_role["color_reference"][0]["path"]),
     )
     candidate_artifact = artifact(request["candidatePath"])
     artifact_quality = 1.0 if candidate_artifact["nonEmptyPixels"] > 0 else 0.0

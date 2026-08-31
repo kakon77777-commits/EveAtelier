@@ -56,6 +56,25 @@ test('rejects fixture providers and uncalibrated thresholds before generation', 
   );
 });
 
+test('allows private research assets only with a separate explicit opt-in', () => {
+  const privateConfig = { ...config, sourceKind: 'private_research_authorized' };
+  assert.throws(
+    () => validateExecutionGate({
+      command: 'generate-evaluate',
+      env: { EVE_REAL_MVP: '1' },
+      config: privateConfig,
+      thresholds,
+    }),
+    /private_research_opt_in_required/,
+  );
+  assert.doesNotThrow(() => validateExecutionGate({
+    command: 'generate-evaluate',
+    env: { EVE_REAL_MVP: '1', EVE_PRIVATE_RESEARCH_APPROVED: '1' },
+    config: privateConfig,
+    thresholds,
+  }));
+});
+
 test('rejects missing review evidence and candidate mismatch before promotion', () => {
   assert.throws(
     () => validateExecutionGate({

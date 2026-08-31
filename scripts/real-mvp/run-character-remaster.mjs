@@ -36,7 +36,11 @@ export function validateExecutionGate({
     if (config?.provider?.type === 'fixture') throw new Error('fixture_provider_forbidden_for_real_run');
     throw new Error('real_generation_provider_configuration_required');
   }
-  if (config.sourceKind !== 'rights_clear_real') {
+  if (config.sourceKind === 'private_research_authorized') {
+    if (env?.EVE_PRIVATE_RESEARCH_APPROVED !== '1') {
+      throw new Error('private_research_opt_in_required');
+    }
+  } else if (config.sourceKind !== 'rights_clear_real') {
     throw new Error('rights_clear_source_reference_pack_required');
   }
   if (!config.evaluator?.model?.modelId) throw new Error('real_evaluator_model_required');

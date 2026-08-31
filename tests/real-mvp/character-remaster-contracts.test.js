@@ -25,6 +25,7 @@ async function assetPack() {
   await writeFile(sourceAsset, 'source-bytes');
   await Promise.all(Object.entries(paths).map(([role, path]) => writeFile(path, `${role}-bytes`)));
   return {
+    directory,
     sourceAsset,
     references: Object.entries(paths).map(([role, path]) => ({ role, path })),
   };
@@ -100,5 +101,31 @@ test('builds a provider-neutral generation variation request with a distinct can
   assert.deepEqual(
     request.references.map(item => item.role),
     ['line_reference', 'color_reference', 'negative_reference'],
+  );
+});
+
+test('preserves multiple negative references without selecting a primary', async () => {
+  const pack = await assetPack();
+  const secondNegative = join(pack.directory, 'negative-second.png');
+  await writeFile(secondNegative, 'negative-reference-second-bytes');
+  const assets = bindReferenceRoles({
+    sourceAsset: pack.sourceAsset,
+    references: [
+      ...pack.references,
+      { role: 'negative_reference', path: secondNegative },
+    ],
+  });
+
+  assert.equal(Array.isArray(assets.byRole.negative_reference), true);
+  assert.deepEqual(
+    assets.byRole.negative_reference.map(item => item.sha256),
+    [
+      sha256('negative_reference-bytes'),
+      sha256('negative-reference-second-bytes'),
+    ],
+  );
+  assert.equal(
+    assets.references.filter(item => item.role === 'negative_reference').length,
+    2,
   );
 });

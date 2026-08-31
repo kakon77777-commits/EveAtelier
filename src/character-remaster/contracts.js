@@ -81,10 +81,15 @@ export function bindReferenceRoles({ sourceAsset, references } = {}) {
     if (!allowedReferenceRoles.has(reference.role)) {
       throw new Error(`unsupported_reference_role:${reference.role ?? ''}`);
     }
-    if (byRole[reference.role]) throw new Error(`duplicate_reference_role:${reference.role}`);
     const identity = { role: reference.role, ...fileIdentity(reference.path, `reference_${reference.role}`) };
     bound.push(identity);
-    byRole[reference.role] = identity;
+    if (reference.role === 'negative_reference') {
+      byRole.negative_reference ??= [];
+      byRole.negative_reference.push(identity);
+    } else {
+      if (byRole[reference.role]) throw new Error(`duplicate_reference_role:${reference.role}`);
+      byRole[reference.role] = identity;
+    }
   }
 
   for (const role of REQUIRED_REFERENCE_ROLES) {

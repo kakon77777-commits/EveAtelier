@@ -94,3 +94,20 @@ test('normalizes tensor and pooled model image-feature outputs', () => {
   assert.equal(result.status, 0, result.stderr || result.stdout);
   assert.equal(result.stdout.trim(), 'normalized');
 });
+
+test('groups repeated negative reference features without overwriting them', () => {
+  const code = [
+    'from providers.python.reference_grouping import group_reference_records',
+    "references = [{'role':'line_reference','path':'line.png'}, {'role':'negative_reference','path':'negative-a.png'}, {'role':'negative_reference','path':'negative-b.png'}]",
+    "groups = group_reference_records(references, ['line-feature', 'negative-a-feature', 'negative-b-feature'])",
+    "assert [item['path'] for item in groups['negative_reference']] == ['negative-a.png', 'negative-b.png']",
+    "assert [item['feature'] for item in groups['negative_reference']] == ['negative-a-feature', 'negative-b-feature']",
+    "print('grouped')",
+  ].join('; ');
+  const result = spawnSync('python3', ['-c', code], {
+    cwd: process.cwd(),
+    encoding: 'utf8',
+  });
+  assert.equal(result.status, 0, result.stderr || result.stdout);
+  assert.equal(result.stdout.trim(), 'grouped');
+});
