@@ -26,6 +26,18 @@ const locality = {
   outsideMaxAbsoluteDelta: 0,
 };
 
+function approvingReview(versionId, suffix) {
+  return {
+    reviewId: `review:${suffix}`,
+    candidateVersionId: versionId,
+    reviewer: { kind: 'human', id: 'local-owner' },
+    disposition: 'APPROVE',
+    reason: 'Approved parent candidate.',
+    reviewedAt: '2026-08-31T08:00:00.000Z',
+    evidenceClass: 'human_observed',
+  };
+}
+
 test('accepts a globally valid repair that changes only masked pixels', () => {
   const result = decideLocalizedRepairVerdict({
     globalEvaluation: { verdict: 'ACCEPT', warnings: [] },
@@ -188,13 +200,18 @@ test('stages repair candidates from the current parent without mutating or promo
   const source = workbench.createDocument({
     documentId: 'document:localized',
     sourceAsset: sourcePath,
-    promotionPolicy: 'automatic_deterministic',
+    promotionPolicy: 'human_required',
   });
   const parentCandidate = workbench.stageCandidate({
     documentId: 'document:localized',
     parentVersionId: source.versionId,
     assetPath: parentPath,
     evaluation: { verdict: 'ACCEPT' },
+  });
+  workbench.recordHumanReview({
+    documentId: 'document:localized',
+    versionId: parentCandidate.versionId,
+    review: approvingReview(parentCandidate.versionId, 'localized-parent'),
   });
   const parent = workbench.promoteCandidate({
     documentId: 'document:localized',
@@ -277,7 +294,7 @@ test('rejects a stale repair parent before provider dispatch', async () => {
   const source = workbench.createDocument({
     documentId: 'document:stale',
     sourceAsset: sourcePath,
-    promotionPolicy: 'automatic_deterministic',
+    promotionPolicy: 'human_required',
   });
   const first = workbench.stageCandidate({
     documentId: 'document:stale',
@@ -285,12 +302,22 @@ test('rejects a stale repair parent before provider dispatch', async () => {
     assetPath: firstPath,
     evaluation: { verdict: 'ACCEPT' },
   });
+  workbench.recordHumanReview({
+    documentId: 'document:stale',
+    versionId: first.versionId,
+    review: approvingReview(first.versionId, 'stale-first'),
+  });
   workbench.promoteCandidate({ documentId: 'document:stale', versionId: first.versionId });
   const current = workbench.stageCandidate({
     documentId: 'document:stale',
     parentVersionId: first.versionId,
     assetPath: currentPath,
     evaluation: { verdict: 'ACCEPT' },
+  });
+  workbench.recordHumanReview({
+    documentId: 'document:stale',
+    versionId: current.versionId,
+    review: approvingReview(current.versionId, 'stale-current'),
   });
   workbench.promoteCandidate({ documentId: 'document:stale', versionId: current.versionId });
   let providerCalls = 0;
@@ -330,5 +357,57 @@ test('rejects a stale repair parent before provider dispatch', async () => {
     globalThresholds: {},
     localityThresholds: thresholds,
   }), /localized_repair_parent_not_current/);
+  assert.equal(providerCalls, 0);
+});
+
+test('runner rejects a non-human promotion policy before provider dispatch', async () => {
+  const directory = await mkdtemp(join(tmpdir(), 'eve-localized-policy-runner-'));
+  const sourcePath = join(directory, 'source.png');
+  const maskPath = join(directory, 'mask.png');
+  await writeFile(sourcePath, 'source');
+  await writeFile(maskPath, 'mask');
+  const workbench = new EveAtelierWorkbench({ projectId: 'project:runner-policy' });
+  const parent = workbench.createDocument({
+    documentId: 'document:runner-policy',
+    sourceAsset: sourcePath,
+    promotionPolicy: 'automatic_deterministic',
+  });
+  let providerCalls = 0;
+  const provider = {
+    async generateVariation(request) {
+      providerCalls += 1;
+      await writeFile(request.outputPath, 'unexpected');
+      return {
+        status: 'completed',
+        executionId: 'unexpected',
+        providerId: 'provider:unexpected',
+        providerVersion: '0.1.0',
+        modelIdentity: { id: 'unexpected' },
+        outputPath: request.outputPath,
+      };
+    },
+  };
+  const evaluator = {
+    async evaluate() { return { verdict: 'ACCEPT', warnings: [] }; },
+    async evaluateLocalizedRepair() { return locality; },
+  };
+
+  await assert.rejects(() => new LocalizedRepairRunner().run({
+    workbench,
+    documentId: 'document:runner-policy',
+    parentVersionId: parent.versionId,
+    identitySourcePath: sourcePath,
+    maskPath,
+    references: [],
+    provider,
+    evaluator,
+    workingDir: directory,
+    taskId: 'policy-repair',
+    intentText: ['repair'],
+    candidateCount: 2,
+    baseSeed: 10,
+    globalThresholds: {},
+    localityThresholds: thresholds,
+  }), /localized_repair_human_policy_required/);
   assert.equal(providerCalls, 0);
 });

@@ -1,5 +1,5 @@
 import { createHash } from 'node:crypto';
-import { readFile, mkdir, stat, writeFile } from 'node:fs/promises';
+import { readFile, mkdir, writeFile } from 'node:fs/promises';
 import { dirname, isAbsolute, join, resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { bindReferenceRoles } from '../../src/character-remaster/contracts.js';
@@ -14,6 +14,22 @@ import { ComfyUiProvider } from '../../src/providers/comfyui-provider.js';
 import { DiffusersProvider } from '../../src/providers/diffusers-provider.js';
 import { EveAtelierWorkbench } from '../../src/workbench.js';
 import { MrmicClient, buildArtResourcePortal } from '../../src/mrmic-client.js';
+
+const APPROVED_LOCALIZED_REPAIR_WORKFLOW_SHA256 = '553ca3f09f2d4d5a63f424a2b988cea697b7d6dbb8e1cfd617c7f601653882a4';
+const APPROVED_LOCALIZED_REPAIR_MODEL = Object.freeze({
+  id: 'stable-diffusion-v1-5/stable-diffusion-v1-5',
+  revision: '451f4fe16113bff5a5d2269ed5ad43b0592e9a14',
+  file: 'v1-5-pruned-emaonly.safetensors',
+  sha256: '6ce0161689b3853acaa03779ec93eafe75a02f4ced659bee03f50797806fa2fa',
+});
+const LOCALIZED_REPAIR_BINDINGS = Object.freeze({
+  sourceImage: ['2', 'image'],
+  maskImage: ['3', 'image'],
+  positivePrompt: ['4', 'text'],
+  negativePrompt: ['5', 'text'],
+  seed: ['7', 'seed'],
+  filenamePrefix: ['10', 'filename_prefix'],
+});
 
 export function parseCliArgs(argv) {
   const [command, ...rest] = argv;
@@ -110,22 +126,62 @@ export function localizedRepairWorkflowDigest(value) {
   return createHash('sha256').update(JSON.stringify(workflow)).digest('hex');
 }
 
-export function validateLocalizedRepairExecutionGate({ config, repair, workflowSha256 }) {
+function sameLink(value, nodeId, outputIndex = 0) {
+  return Array.isArray(value) && value.length === 2 && value[0] === nodeId && value[1] === outputIndex;
+}
+
+function localizedWorkflowMatchesContract(workflow) {
+  return workflow
+    && workflow['1']?.class_type === 'CheckpointLoaderSimple'
+    && workflow['1'].inputs?.ckpt_name === APPROVED_LOCALIZED_REPAIR_MODEL.file
+    && workflow['2']?.class_type === 'LoadImage'
+    && workflow['3']?.class_type === 'LoadImageMask'
+    && workflow['3'].inputs?.channel === 'red'
+    && workflow['4']?.class_type === 'CLIPTextEncode'
+    && workflow['5']?.class_type === 'CLIPTextEncode'
+    && workflow['6']?.class_type === 'VAEEncode'
+    && sameLink(workflow['6'].inputs?.pixels, '2')
+    && sameLink(workflow['6'].inputs?.vae, '1', 2)
+    && workflow['11']?.class_type === 'SetLatentNoiseMask'
+    && sameLink(workflow['11'].inputs?.samples, '6')
+    && sameLink(workflow['11'].inputs?.mask, '3')
+    && workflow['7']?.class_type === 'KSampler'
+    && workflow['7'].inputs?.denoise === 0.2
+    && sameLink(workflow['7'].inputs?.model, '1')
+    && sameLink(workflow['7'].inputs?.positive, '4')
+    && sameLink(workflow['7'].inputs?.negative, '5')
+    && sameLink(workflow['7'].inputs?.latent_image, '11')
+    && workflow['8']?.class_type === 'VAEDecode'
+    && sameLink(workflow['8'].inputs?.samples, '7')
+    && sameLink(workflow['8'].inputs?.vae, '1', 2)
+    && workflow['9']?.class_type === 'ImageCompositeMasked'
+    && sameLink(workflow['9'].inputs?.destination, '2')
+    && sameLink(workflow['9'].inputs?.source, '8')
+    && sameLink(workflow['9'].inputs?.mask, '3')
+    && workflow['9'].inputs?.x === 0
+    && workflow['9'].inputs?.y === 0
+    && workflow['9'].inputs?.resize_source === false
+    && workflow['10']?.class_type === 'SaveImage'
+    && sameLink(workflow['10'].inputs?.images, '9');
+}
+
+export function validateLocalizedRepairExecutionGate({ config, repair, workflow, workflowSha256 }) {
   const provider = config?.provider;
   if (provider?.type !== 'comfyui') throw new Error('localized_repair_comfyui_required');
   if (provider.model?.allowDownload === true) throw new Error('localized_repair_model_download_forbidden');
-  if (!provider.bindings?.maskImage
-      || typeof provider.bindings.maskImage.nodeId !== 'string'
-      || typeof provider.bindings.maskImage.input !== 'string') {
-    throw new Error('localized_repair_mask_binding_required');
+  if (config.evaluator?.model?.allowDownload === true) {
+    throw new Error('localized_repair_evaluator_download_forbidden');
   }
-  if (typeof provider.outputNodeId !== 'string' || provider.outputNodeId.length === 0) {
+  for (const [name, [nodeId, input]] of Object.entries(LOCALIZED_REPAIR_BINDINGS)) {
+    if (provider.bindings?.[name]?.nodeId !== nodeId || provider.bindings?.[name]?.input !== input) {
+      throw new Error('localized_repair_mask_binding_required');
+    }
+  }
+  if (provider.outputNodeId !== '10') {
     throw new Error('localized_repair_output_node_required');
   }
   const model = provider.model;
-  if (!model
-      || ['id', 'revision', 'file', 'sha256'].some(key => typeof model[key] !== 'string' || !model[key])
-      || !/^[a-f0-9]{64}$/i.test(model.sha256)) {
+  if (!model || Object.entries(APPROVED_LOCALIZED_REPAIR_MODEL).some(([key, value]) => model[key] !== value)) {
     throw new Error('localized_repair_model_identity_required');
   }
   if (typeof repair?.workflowSha256 !== 'string'
@@ -134,6 +190,10 @@ export function validateLocalizedRepairExecutionGate({ config, repair, workflowS
   }
   if (workflowSha256 !== repair.workflowSha256) {
     throw new Error('localized_repair_workflow_hash_mismatch');
+  }
+  if (workflowSha256 !== APPROVED_LOCALIZED_REPAIR_WORKFLOW_SHA256
+      || !localizedWorkflowMatchesContract(workflow)) {
+    throw new Error('localized_repair_workflow_contract_mismatch');
   }
 }
 
@@ -173,6 +233,16 @@ export function validateLocalizedRepairMaskPreflight({
   }
   if (Math.abs(parentLocality.maskCoverage - maskEvidence.maskCoverage) > 1e-12) {
     throw new Error('localized_repair_mask_evidence_mismatch');
+  }
+}
+
+export async function createLocalizedRepairOutputDirectory(outputDirectory) {
+  await mkdir(dirname(outputDirectory), { recursive: true });
+  try {
+    await mkdir(outputDirectory);
+  } catch (error) {
+    if (error?.code === 'EEXIST') throw new Error('localized_repair_output_exists');
+    throw error;
   }
 }
 
@@ -343,12 +413,17 @@ export async function localizedRepairGenerateEvaluate({
   const inputs = await loadInputs(configPath);
   const repair = validateLocalizedRepairConfig(inputs.config.localizedRepair);
   const workflowPath = relativeTo(inputs.configDirectory, inputs.config.provider?.workflowPath ?? '');
+  const workflowBytes = inputs.config.provider?.type === 'comfyui'
+    ? await readFile(workflowPath)
+    : null;
+  const workflow = workflowBytes ? JSON.parse(workflowBytes.toString('utf8')) : null;
   const workflowSha256 = inputs.config.provider?.type === 'comfyui'
-    ? localizedRepairWorkflowDigest(await readFile(workflowPath))
+    ? localizedRepairWorkflowDigest(workflowBytes)
     : null;
   validateLocalizedRepairExecutionGate({
     config: inputs.config,
     repair,
+    workflow,
     workflowSha256,
   });
   validateExecutionGate({
@@ -379,15 +454,7 @@ export async function localizedRepairGenerateEvaluate({
   }
 
   const outputDirectory = runtimeDirectory(inputs.config, inputs.configDirectory, repair.taskId);
-  let outputExists = false;
-  try {
-    await stat(outputDirectory);
-    outputExists = true;
-  } catch (error) {
-    if (error?.code !== 'ENOENT') throw error;
-  }
-  if (outputExists) throw new Error('localized_repair_output_exists');
-  await mkdir(outputDirectory, { recursive: true });
+  await createLocalizedRepairOutputDirectory(outputDirectory);
   const maskPath = join(outputDirectory, 'repair-mask.png');
   const maskEvidence = await evaluator.buildLocalizedRepairMask({
     ...repair.mask,

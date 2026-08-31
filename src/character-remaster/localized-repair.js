@@ -147,6 +147,9 @@ export class LocalizedRepairRunner {
     globalThresholds,
     localityThresholds,
   }) {
+    if (workbench.getDocument(documentId).promotionPolicy !== 'human_required') {
+      throw new Error('localized_repair_human_policy_required');
+    }
     if (!provider || typeof provider.generateVariation !== 'function') {
       throw new TypeError('localized_repair_provider_required');
     }

@@ -5,6 +5,7 @@ import { mkdtemp, readFile, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import {
+  createLocalizedRepairOutputDirectory,
   localizedRepairGenerateEvaluate,
   localizedRepairWorkflowDigest,
   parseCliArgs,
@@ -158,35 +159,50 @@ test('requires an explicit bounded mask and locality thresholds for localized re
   }
 });
 
-test('localized repair requires pinned no-download ComfyUI mask execution', () => {
+test('localized repair requires pinned no-download ComfyUI mask execution', async () => {
+  const workflow = JSON.parse(await readFile(
+    'fixtures/real_mvp/character_remaster/provider/comfyui-sd15-localized-inpaint-api.json',
+    'utf8',
+  ));
+  const workflowSha256 = localizedRepairWorkflowDigest(JSON.stringify(workflow));
   const repair = {
-    workflowSha256: 'a'.repeat(64),
+    workflowSha256,
   };
   const localizedConfig = {
     provider: {
       type: 'comfyui',
       workflowPath: 'localized-workflow.json',
-      bindings: { maskImage: { nodeId: '3', input: 'image' } },
+      bindings: {
+        sourceImage: { nodeId: '2', input: 'image' },
+        maskImage: { nodeId: '3', input: 'image' },
+        positivePrompt: { nodeId: '4', input: 'text' },
+        negativePrompt: { nodeId: '5', input: 'text' },
+        seed: { nodeId: '7', input: 'seed' },
+        filenamePrefix: { nodeId: '10', input: 'filename_prefix' },
+      },
       outputNodeId: '10',
       model: {
         id: 'stable-diffusion-v1-5/stable-diffusion-v1-5',
-        revision: 'revision:test',
+        revision: '451f4fe16113bff5a5d2269ed5ad43b0592e9a14',
         file: 'v1-5-pruned-emaonly.safetensors',
-        sha256: 'b'.repeat(64),
+        sha256: '6ce0161689b3853acaa03779ec93eafe75a02f4ced659bee03f50797806fa2fa',
         allowDownload: false,
       },
     },
+    evaluator: { model: { allowDownload: false } },
   };
 
   assert.doesNotThrow(() => validateLocalizedRepairExecutionGate({
     config: localizedConfig,
     repair,
-    workflowSha256: 'a'.repeat(64),
+    workflow,
+    workflowSha256,
   }));
   assert.throws(() => validateLocalizedRepairExecutionGate({
     config: { ...localizedConfig, provider: { type: 'diffusers', model: localizedConfig.provider.model } },
     repair,
-    workflowSha256: 'a'.repeat(64),
+    workflow,
+    workflowSha256,
   }), /localized_repair_comfyui_required/);
   assert.throws(() => validateLocalizedRepairExecutionGate({
     config: {
@@ -197,11 +213,13 @@ test('localized repair requires pinned no-download ComfyUI mask execution', () =
       },
     },
     repair,
-    workflowSha256: 'a'.repeat(64),
+    workflow,
+    workflowSha256,
   }), /localized_repair_model_download_forbidden/);
   assert.throws(() => validateLocalizedRepairExecutionGate({
     config: localizedConfig,
     repair,
+    workflow,
     workflowSha256: 'c'.repeat(64),
   }), /localized_repair_workflow_hash_mismatch/);
   assert.throws(() => validateLocalizedRepairExecutionGate({
@@ -210,7 +228,8 @@ test('localized repair requires pinned no-download ComfyUI mask execution', () =
       provider: { ...localizedConfig.provider, bindings: {} },
     },
     repair,
-    workflowSha256: 'a'.repeat(64),
+    workflow,
+    workflowSha256,
   }), /localized_repair_mask_binding_required/);
   assert.throws(() => validateLocalizedRepairExecutionGate({
     config: {
@@ -221,8 +240,25 @@ test('localized repair requires pinned no-download ComfyUI mask execution', () =
       },
     },
     repair,
-    workflowSha256: 'a'.repeat(64),
+    workflow,
+    workflowSha256,
   }), /localized_repair_model_identity_required/);
+  assert.throws(() => validateLocalizedRepairExecutionGate({
+    config: {
+      ...localizedConfig,
+      evaluator: { model: { allowDownload: true } },
+    },
+    repair,
+    workflow,
+    workflowSha256,
+  }), /localized_repair_evaluator_download_forbidden/);
+  const arbitraryWorkflow = { pinned: true };
+  assert.throws(() => validateLocalizedRepairExecutionGate({
+    config: localizedConfig,
+    repair: { workflowSha256: localizedRepairWorkflowDigest(JSON.stringify(arbitraryWorkflow)) },
+    workflow: arbitraryWorkflow,
+    workflowSha256: localizedRepairWorkflowDigest(JSON.stringify(arbitraryWorkflow)),
+  }), /localized_repair_workflow_contract_mismatch/);
 });
 
 test('localized workflow pin is stable across JSON whitespace and line endings', () => {
@@ -293,6 +329,19 @@ test('localized repair mask preflight rejects empty, mismatched, or unauthentica
   }), /localized_repair_mask_dimensions_mismatch/);
 });
 
+test('localized repair output directory creation is atomic', async () => {
+  const directory = await mkdtemp(join(tmpdir(), 'eve-localized-atomic-'));
+  const outputDirectory = join(directory, 'runtime', 'task-001');
+  const results = await Promise.allSettled([
+    createLocalizedRepairOutputDirectory(outputDirectory),
+    createLocalizedRepairOutputDirectory(outputDirectory),
+  ]);
+
+  assert.equal(results.filter(result => result.status === 'fulfilled').length, 1);
+  const rejected = results.find(result => result.status === 'rejected');
+  assert.match(String(rejected.reason), /localized_repair_output_exists/);
+});
+
 test('localized repair CLI stage writes resumable state, evidence, and review choices', async () => {
   const directory = await mkdtemp(join(tmpdir(), 'eve-localized-cli-'));
   const sourcePath = join(directory, 'source.png');
@@ -311,7 +360,9 @@ test('localized repair CLI stage writes resumable state, evidence, and review ch
   const workflowPath = join(directory, 'localized-workflow.json');
   const statePath = join(directory, 'promoted-state.json');
   const runtimeDir = join(directory, 'runtime');
-  const workflowBytes = Buffer.from('{"pinned":true}\n');
+  const workflowBytes = await readFile(
+    'fixtures/real_mvp/character_remaster/provider/comfyui-sd15-localized-inpaint-api.json',
+  );
   await writeFile(workflowPath, workflowBytes);
   const workflowSha256 = createHash('sha256')
     .update(JSON.stringify(JSON.parse(workflowBytes.toString('utf8'))))
@@ -340,17 +391,24 @@ test('localized repair CLI stage writes resumable state, evidence, and review ch
     provider: {
       type: 'comfyui',
       workflowPath,
-      bindings: { maskImage: { nodeId: '3', input: 'image' } },
+      bindings: {
+        sourceImage: { nodeId: '2', input: 'image' },
+        maskImage: { nodeId: '3', input: 'image' },
+        positivePrompt: { nodeId: '4', input: 'text' },
+        negativePrompt: { nodeId: '5', input: 'text' },
+        seed: { nodeId: '7', input: 'seed' },
+        filenamePrefix: { nodeId: '10', input: 'filename_prefix' },
+      },
       outputNodeId: '10',
       model: {
-        id: 'model:test',
-        revision: 'revision:test',
-        file: 'model.safetensors',
-        sha256: 'b'.repeat(64),
+        id: 'stable-diffusion-v1-5/stable-diffusion-v1-5',
+        revision: '451f4fe16113bff5a5d2269ed5ad43b0592e9a14',
+        file: 'v1-5-pruned-emaonly.safetensors',
+        sha256: '6ce0161689b3853acaa03779ec93eafe75a02f4ced659bee03f50797806fa2fa',
         allowDownload: false,
       },
     },
-    evaluator: { model: { modelId: 'model:test' } },
+    evaluator: { model: { modelId: 'model:test', allowDownload: false } },
     localizedRepair: {
       taskId: 'candidate-02-localized-repair-001',
       workflowSha256,
