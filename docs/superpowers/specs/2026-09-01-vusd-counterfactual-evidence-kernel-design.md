@@ -87,6 +87,7 @@ Observation 必須在 prediction 之後追加。其 primary observed axes 必須
 
 `COMPOSITE` 必須引用既有 component operators；`PRIMITIVE_CANDIDATE` 不得偽裝已有 components。
 Proposal 必須在它引用的 residual observations 之後追加。
+被引用的 observation 必須至少包含一個 `PARTIAL`、`MISMATCH`、`UNRESOLVED` 或 `COLLATERAL`；全數 `MATCH` 的 observation 不能只靠欄位名稱冒充 residual evidence。
 
 ## 4. Persistence
 

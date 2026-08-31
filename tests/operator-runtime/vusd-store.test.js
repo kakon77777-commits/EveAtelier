@@ -301,6 +301,15 @@ test('fails closed on dangling prediction, axes, closure operators, residuals, a
       value.recordedAt = observed.recordedAt;
       store.appendOperatorProposal(value);
     }, /operator_proposal_not_after_residual:counterfactual:observation:store:001/],
+    ['proposal cites a perfect match as residual evidence', (store, ref) => {
+      const predicted = prediction(ref);
+      store.appendCounterfactualPrediction(predicted);
+      const observed = observation(predicted.predictionId);
+      observed.observedDeltas = [structuredClone(predicted.predictedDeltas[0])];
+      observed.collateralDeltas = [];
+      store.appendCounterfactualObservation(observed);
+      store.appendOperatorProposal(proposal(ref, observed.observationId));
+    }, /operator_proposal_residual_empty:counterfactual:observation:store:001/],
   ];
 
   for (const [name, action, expected] of cases) {

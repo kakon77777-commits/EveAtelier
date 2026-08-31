@@ -372,6 +372,15 @@ export class VusdEvidenceStore {
       if (Date.parse(proposal.recordedAt) <= Date.parse(observation.recordedAt)) {
         throw new Error(`operator_proposal_not_after_residual:${residualRef}`);
       }
+      const comparison = this.compare({
+        predictionId: observation.predictionId,
+        observationId: residualRef,
+      });
+      const residualCount = comparison.summary.PARTIAL
+        + comparison.summary.MISMATCH
+        + comparison.summary.UNRESOLVED
+        + comparison.summary.COLLATERAL;
+      if (residualCount === 0) throw new Error(`operator_proposal_residual_empty:${residualRef}`);
       const prediction = this.getPrediction(row.prediction_id);
       if (canonicalJson(prediction.packRef) !== canonicalJson(proposal.basePackRef)) {
         throw new Error(`operator_proposal_residual_pack_mismatch:${residualRef}`);
