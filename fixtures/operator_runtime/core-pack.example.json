@@ -1,0 +1,165 @@
+{
+  "schema": "eve-atelier-operator-pack/v1",
+  "packId": "operator-pack:example-core",
+  "version": "1.0.0",
+  "description": "Synthetic public-safe dynamic operator pack.",
+  "axes": [
+    {
+      "axisId": "semantic.axis.example.intensity",
+      "description": "Synthetic intensity axis supplied entirely by this pack.",
+      "valueSchema": {
+        "kind": "SCALAR",
+        "min": 0,
+        "max": 1
+      }
+    },
+    {
+      "axisId": "semantic.axis.example.identity",
+      "description": "Synthetic identity continuity axis.",
+      "valueSchema": {
+        "kind": "SCALAR",
+        "min": 0,
+        "max": 1
+      }
+    }
+  ],
+  "locks": [
+    {
+      "lockId": "semantic.lock.example.identity",
+      "description": "Preserve synthetic identity evidence.",
+      "targetAxisIds": [
+        "semantic.axis.example.identity"
+      ],
+      "strength": "HARD",
+      "evidenceRequired": true
+    }
+  ],
+  "families": [
+    {
+      "familyId": "visual.family.semantic.adjust-axis",
+      "version": "1.0.0",
+      "description": "Synthetic semantic operator family.",
+      "abstraction": "SEMANTIC",
+      "variants": [
+        {
+          "operatorId": "visual.op.semantic.adjust_axis",
+          "version": "1.0.0",
+          "description": "Adjust one declared semantic axis.",
+          "executionMode": "COMPILE_ONLY",
+          "inputKinds": [
+            "art.document"
+          ],
+          "outputKinds": [
+            "operator.plan"
+          ],
+          "parameterSchema": [],
+          "effects": [
+            {
+              "axisId": "semantic.axis.example.intensity",
+              "mode": "SET"
+            }
+          ],
+          "requiredLockIds": [
+            "semantic.lock.example.identity"
+          ],
+          "requiredCapabilities": [],
+          "locality": "GLOBAL",
+          "determinism": "DETERMINISTIC",
+          "reversibility": "REVERSIBLE",
+          "authority": "CANDIDATE_ONLY"
+        }
+      ]
+    },
+    {
+      "familyId": "visual.family.generative.variation",
+      "version": "1.0.0",
+      "description": "Candidate generation family.",
+      "abstraction": "EXECUTABLE",
+      "variants": [
+        {
+          "operatorId": "visual.op.generative.generate_variation",
+          "version": "1.0.0",
+          "description": "Generate a candidate variation.",
+          "executionMode": "PROVIDER_BOUND",
+          "inputKinds": [
+            "raster.image"
+          ],
+          "outputKinds": [
+            "raster.image"
+          ],
+          "parameterSchema": [],
+          "effects": [],
+          "requiredLockIds": [],
+          "requiredCapabilities": [
+            "generative.variation"
+          ],
+          "locality": "GLOBAL",
+          "determinism": "SEEDED_STOCHASTIC",
+          "reversibility": "COMPENSATABLE",
+          "authority": "CANDIDATE_ONLY"
+        }
+      ]
+    },
+    {
+      "familyId": "visual.family.raster.resize",
+      "version": "1.0.0",
+      "description": "Deterministic raster family.",
+      "abstraction": "EXECUTABLE",
+      "variants": [
+        {
+          "operatorId": "visual.op.raster.resize",
+          "version": "1.0.0",
+          "description": "Resize a raster candidate.",
+          "executionMode": "PROVIDER_BOUND",
+          "inputKinds": [
+            "raster.image"
+          ],
+          "outputKinds": [
+            "raster.image"
+          ],
+          "parameterSchema": [
+            {
+              "name": "width",
+              "kind": "INTEGER",
+              "required": true,
+              "min": 1,
+              "max": 16384
+            },
+            {
+              "name": "height",
+              "kind": "INTEGER",
+              "required": true,
+              "min": 1,
+              "max": 16384
+            }
+          ],
+          "effects": [],
+          "requiredLockIds": [],
+          "requiredCapabilities": [
+            "raster.resize"
+          ],
+          "locality": "GLOBAL",
+          "determinism": "DETERMINISTIC",
+          "reversibility": "COMPENSATABLE",
+          "authority": "CANDIDATE_ONLY"
+        }
+      ]
+    }
+  ],
+  "compilerRules": [
+    {
+      "ruleId": "compiler.rule.example.adjust-axis",
+      "version": "1.0.0",
+      "sourceOperatorId": "visual.op.semantic.adjust_axis",
+      "emitsOperatorIds": [
+        "visual.op.generative.generate_variation"
+      ],
+      "requiredAxisIds": [
+        "semantic.axis.example.intensity"
+      ],
+      "requiredLockIds": [
+        "semantic.lock.example.identity"
+      ]
+    }
+  ]
+}

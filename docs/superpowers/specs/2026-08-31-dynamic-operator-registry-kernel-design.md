@@ -2,7 +2,7 @@
 
 日期：2026-08-31
 
-狀態：`APPROVED_FOR_IMPLEMENTATION / PHASE_2A`
+狀態：`IMPLEMENTED_CANDIDATE / REVIEW_PENDING / PHASE_2A`
 
 ## 1. 目標
 
@@ -203,10 +203,10 @@ Lifecycle 對 plan 的影響：
 | `DRAFT` | no | `BLOCKED` | no |
 | `EXPERIMENTAL_UNCALIBRATED` | yes | `UNVERIFIED` | no |
 | `CALIBRATED` | yes | `UNVERIFIED` | no |
-| `ACTIVE` | yes | `READY` | yes |
+| `ACTIVE` | yes | `READY` | no — RABCL execution compiler remains absent |
 | `DEPRECATED` | no new plan | `BLOCKED` | no |
 
-Phase 2A semantic plan 即使 `READY`，也只表示可交給後續 execution compiler；不表示圖像已被接受。
+Phase 2A semantic plan 即使 `READY`，也只表示可交給後續 execution compiler；其 `executable` 仍為 `false`，並保留 `operator_plan_execution_compiler_not_implemented` blocker。它不表示圖像已被執行或接受。
 
 ## 7. Lifecycle / Authority
 
@@ -383,7 +383,7 @@ Phase 2A 完成需同時成立：
 3. registry/experience tables 無法 update/delete；
 4. AI actor 無法 calibration/activation；
 5. uncalibrated semantic directive 只產生 `UNVERIFIED` non-executable plan；
-6. ACTIVE pack 可產生 exact provider-neutral `READY` plan；
+6. ACTIVE pack 可產生 exact provider-neutral `READY` plan，但在 RABCL 缺席時仍不可執行；
 7. capability matcher 對不符 privacy/version/capability 的 provider fail closed；
 8. `visual.op.raster.resize` 經 registry/runtime/Pillow 真實執行並保留 receipt；
 9. runtime 不 mutation Workbench、不 promotion、不接觸 MRMIC；
@@ -396,3 +396,35 @@ Phase 2A 完成需同時成立：
 - Phase 6：RABCL 將 READY plan 編成 provider workflows；
 - Phase 7：SEDB-Visual 接管長期 semantic observation/query；
 - Phase 8：UI 顯示 axes、locks、candidate compare 與 evidence，不取得 authority。
+
+## 16. Candidate Implementation Evidence
+
+目前 feature branch 已實作：
+
+- exact-field dynamic pack、directive、capability、invocation 與 experience contracts；
+- canonical JSON SHA-256 pack identity；
+- immutable same-version conflict gate；
+- append-only `operator_packs`、`registry_events`、`experience_events` 與 anti-update/delete triggers；
+- AI lifecycle transition rejection與 HUMAN calibration/activation gate；
+- DRAFT / EXPERIMENTAL_UNCALIBRATED / CALIBRATED / ACTIVE / DEPRECATED plan projection；
+- provider capability hard filtering與 stable ranking；
+- ACTIVE `visual.op.raster.resize` 經 registry 與 Pillow provider 真實執行；
+- SHA-bound experience event，且 receipt 無 acceptance / promotion 欄位。
+
+Candidate verification：
+
+```text
+npm run check
+checked_js=27 checked_python=true
+
+npm test
+112 tests / 111 pass / 0 fail / 1 explicit live-MRMIC opt-in skip
+```
+
+仍不主張：
+
+- semantic axes 已完成 calibration；
+- append-only experience 等於已完成 AI learning policy；
+- semantic `READY` plan 已有 RABCL/provider workflow compiler；
+- Region、Garment Topology、SEDB、ISQL 或 generation-seed registry 已落地；
+- deterministic green control 證明任何生成式美術品質。

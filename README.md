@@ -67,13 +67,15 @@ The initial pre-MVP engineering sequence has been executed:
 - Workbench candidate staging, independent evaluation, durable human review, state resume, and promotion gate: executed for Candidate 02 and its localized Repair A child with warnings.
 - Localized repair: pinned SD1.5 core-node workflow, explicit mask upload, current-parent lineage, deterministic locality evidence, zero outside-mask pixel changes, human review, and live MRMIC promotion verified for Repair A.
 - Experimental style-control foundation: provider-neutral `StyleConstraintPacket`, six-dimensional `SameSeriesObservation`, and project-local human pairwise preference contracts; uncalibrated observations always remain `UNVERIFIED`.
-- Full validation snapshot: 95 tests, 94 pass, 0 fail, 1 explicit opt-in live-MRMIC skip.
+- Dynamic Operator Registry Kernel: data-loaded axes, locks, families and compiler rules; immutable version digests; append-only SQLite lifecycle/experience evidence; human-gated activation; provider-neutral semantic plans; and a real registry-bound Pillow resize green control.
+- Full validation snapshot: 112 tests, 111 pass, 0 fail, 1 explicit opt-in live-MRMIC skip.
 - Private source/reference and generated candidate image bytes remain Git-ignored and are not distributed by this repository.
 
 See `docs/mvp/MVP_ACCEPTANCE_REPORT_v0.1.md` for the pre-MVP baseline,
 `docs/mvp/REAL_MVP_CHARACTER_REMASTER_ACCEPTANCE_v0.1.md` for current Real MVP evidence,
 and `docs/style-control/SAME_SERIES_CALIBRATION_FOUNDATION_v0.1.md` for the uncalibrated
-same-series contracts and non-claims.
+same-series contracts and non-claims. The Phase 2A design and evidence boundaries are in
+`docs/superpowers/specs/2026-08-31-dynamic-operator-registry-kernel-design.md`.
 
 ## Next real-MVP gates
 

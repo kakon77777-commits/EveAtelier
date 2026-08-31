@@ -1,0 +1,21 @@
+{
+  "schema": "eve-atelier-provider-capability/v1",
+  "providerId": "provider:pillow-reference",
+  "providerVersion": "0.1",
+  "availability": "AVAILABLE",
+  "privacy": "LOCAL",
+  "capabilities": [
+    "raster.resize"
+  ],
+  "operators": [
+    {
+      "operatorId": "visual.op.raster.resize",
+      "versions": [
+        "1.0.0"
+      ],
+      "evidenceLevel": "CONTRACT_TESTED",
+      "costRank": 1,
+      "latencyRank": 1
+    }
+  ]
+}
