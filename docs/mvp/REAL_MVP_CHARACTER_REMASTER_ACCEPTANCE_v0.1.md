@@ -10,7 +10,7 @@ Canonical baseline: `main@2aad5e79d8442197a15c8cd5c0d95b4149e878a1`
 
 **PARTIAL**
 
-The Real MVP architecture and executable boundaries are implemented and independently regressed. The approved external generation runtime, generation model, and evaluator model are installed and have passed real provider/evaluator smoke tests. A complete five-image private local asset pack is present and hash-verified, but its game-source asset is not proven `rights_clear_real`, the two negative references are not yet bound by the current single-role contract, and thresholds have not been calibrated on this pack. No human review or real candidate promotion has occurred.
+The Real MVP architecture and executable boundaries are implemented and independently regressed. The approved external generation runtime, generation model, and evaluator model are installed. A complete five-image private local asset pack is present, multiple negative-reference binding is implemented, private-fixture thresholds were frozen before generation, and two real candidates were generated and independently evaluated as `ACCEPT`. The game-source asset is not proven `rights_clear_real`; human review, promotion, and candidate-specific MRMIC projection have not occurred.
 
 The PASS definition has not been lowered.
 
@@ -116,8 +116,8 @@ Fresh EveAtelier verification after implementation:
 - `npm run check`: PASS
 - JavaScript files checked: 20
 - Python provider compilation: PASS
-- Node tests discovered: 52
-- tests passed: 51
+- Node tests discovered: 55
+- tests passed: 54
 - tests failed: 0
 - tests skipped: 1
 - skipped test: explicit opt-in live MRMIC test during ordinary offline regression
@@ -236,25 +236,85 @@ Authority classification:
 
 Private approval permits a bounded local experiment but does not satisfy or replace the stricter public-rights evidence gate.
 
+## Private Basic MVP generation and evaluation
+
+Experiment ID: `character-remaster-private-001`
+
+Execution class: `private_research_authorized`
+
+Frozen calibration:
+
+- scope: `PRIVATE_FIXTURE_ONLY`
+- asset-pack manifest SHA-256: `66408d3343a53f52cdb3e8f786d66d5ab18f8c853f37ba058d3f92f814ff03de`
+- identity minimum: 0.855285
+- maximum negative-reference similarity: 0.855285
+- thresholds frozen before candidate generation: true
+- line metric caveat: measured controls were non-discriminative
+- human review required: true
+
+Candidate 01:
+
+- version: `document:wan-qingzhou-private-001:v1`
+- seed: 41001
+- SHA-256: `166d906ec08b00921f64e1c835ea60a77ae32c308ba3b79feed705db3ed02d64`
+- automated verdict: `ACCEPT`
+- identity: 0.9773
+- line: 0.9942
+- color: 0.2979
+- style: 0.7728
+- artifact quality: 1.0000
+- maximum negative similarity: 0.7022
+
+Candidate 02:
+
+- version: `document:wan-qingzhou-private-001:v2`
+- seed: 41002
+- SHA-256: `3ddd032adf3735f9c1d9fa2f4029b2ed7da823930baea5561a130b8046a359ab`
+- automated verdict: `ACCEPT`
+- identity: 0.9734
+- line: 0.9936
+- color: 0.2922
+- style: 0.7623
+- artifact quality: 1.0000
+- maximum negative similarity: 0.6818
+
+Workbench state:
+
+- current version remains `document:wan-qingzhou-private-001:v0`
+- source hash preserved: true
+- candidate count: 2
+- promotion performed: false
+
+Private review package:
+
+- desktop path: `C:\Users\kakon\OneDrive\Desktop\EveAtelier_Private_Basic_MVP_Review_2026-08-31.zip`
+- bytes: 13,697,478
+- SHA-256: `4b6f4c877db312eb4def9c39e4b92ae1267e561272b93bb1190f9f8f2ce21719`
+- archive files: 15
+- manifest entries: 14
+- manifest hash matches: 14/14
+- unsafe paths: 0
+- package scope: `PRIVATE_REVIEW_ONLY`
+
+The web GPT review is advisory only and cannot become the formal `human_observed` review automatically.
+
 ## Acceptance gates
 
 | Gate | Status | Evidence |
 |---|---|---|
-| P1: real source/reference -> at least two real candidates | PARTIAL / RIGHTS BLOCKED | Five-image private pack is present and hash-verified; game source is not proven `rights_clear_real`, multiple negative binding is pending, and no two-candidate pack run occurred |
-| P2: real evaluator evidence | PARTIAL | Real SigLIP inference and deterministic measurements passed; fixture thresholds remain uncalibrated |
-| P3: accepted candidate passes promotion gate | BLOCKED | No real candidates/evaluation |
+| P1: real source/reference -> at least two real candidates | TECHNICAL PASS / RIGHTS BLOCKED | Five-image private pack, multiple negative binding, and two real ComfyUI candidates verified; game source is not proven `rights_clear_real` |
+| P2: real evaluator evidence | PRIVATE-FIXTURE PASS | Frozen private-fixture thresholds and real SigLIP evaluation produced two `ACCEPT` verdicts; no cross-pack generalization claimed |
+| P3: accepted candidate passes promotion gate | EVALUATION PASS / HUMAN GATE PENDING | Two accepted candidates exist; neither can promote before user review |
 | P4: current version changes after real human review | BLOCKED | No real human review; no promotion |
-| P5: live MRMIC candidate/promoted projection | CONTRACT + LIVE BRIDGE PASS, REAL ASSET NOT MEASURED | Cross-process create/patch/render passed with logical artifact IDs |
+| P5: live MRMIC candidate/promoted projection | CONTRACT + PRIOR LIVE BRIDGE PASS, CURRENT CANDIDATES PENDING | Cross-process bridge was previously verified; current candidates wait for review/promotion |
 | P6: evidence and acceptance report | PASS FOR CURRENT PARTIAL STATE | This report, runtime probe, test output, and commit history |
 
 ## Exact blockers
 
 1. The game-source research copy is privately authorized for this local experiment but is not proven `rights_clear_real`.
-2. Two negative references are marked with no primary; the current contract still rejects duplicate role bindings.
-3. Thresholds remain `EXAMPLE_UNCALIBRATED` because this exact private pack has not been measured.
-4. No two-candidate private-pack Character Remaster batch has been generated.
-5. No real user review has been recorded.
-6. No real Workbench candidate has been promoted.
+2. No real user review has been recorded.
+3. No candidate has been promoted.
+4. The current candidates have not been projected through MRMIC.
 
 ## Installed approved runtime
 
@@ -286,20 +346,20 @@ Private approval permits a bounded local experiment but does not satisfy or repl
 
 Measured external runtime storage after installation: 10.91 GiB.
 
-## Next narrow gate: private-pack binding and bounded execution
+## Next narrow gate: human review
 
-1. Extend typed reference binding and evaluator input to preserve both negative references without selecting a fake primary.
-2. Add an explicit `private_research_authorized` execution class while keeping `rights_clear_real = false` and Real MVP PASS ineligible.
-3. Calibrate thresholds on this exact declared private fixture set without reusing smoke scores.
-4. Resume only after renewed user direction; restart the verified ComfyUI runtime and generate two candidates.
-5. Stop for real human review.
-6. Consume the review, promote the selected candidate, start MRMIC, project candidate/promoted state, and verify render.
-7. Rerun full verification and update this report to the measured final classification.
+1. User discusses the desktop `PRIVATE_REVIEW_ONLY` ZIP with the web GPT.
+2. User selects candidate v1, candidate v2, or neither and supplies `APPROVE`, `ACCEPT_WITH_WARNINGS`, or `REJECT` plus a reason.
+3. EveAtelier records the user decision as the only formal `human_observed` review.
+4. If approved, promote the selected candidate while verifying the source hash remains unchanged.
+5. Start MRMIC, project candidate and promoted state, verify readback/render, and stop MRMIC normally.
+6. Rerun full verification and update this report to the final private Basic MVP classification.
 
 ## Non-claims
 
 - No Real MVP PASS is claimed.
-- One real image-generation provider execution is claimed only as fixture-source smoke evidence.
+- The earlier single-image provider smoke remains fixture-source evidence only.
+- One two-candidate private-pack generation/evaluation run is claimed with two automated `ACCEPT` verdicts.
 - No rights-clear user Character Remaster generation batch is claimed.
 - No identity preservation is claimed from provider receipts or fixtures.
 - No human approval is claimed.
