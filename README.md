@@ -66,15 +66,20 @@ The initial pre-MVP engineering sequence has been executed:
 - MRMIC Phase 13 bridge: capability, portal, freshness, transaction, and candidate-specific live local create/patch/readback/render verification.
 - Workbench candidate staging, independent evaluation, durable human review, state resume, and promotion gate: executed for Candidate 02 and its localized Repair A child with warnings.
 - Localized repair: pinned SD1.5 core-node workflow, explicit mask upload, current-parent lineage, deterministic locality evidence, zero outside-mask pixel changes, human review, and live MRMIC promotion verified for Repair A.
-- Full validation snapshot: 81 tests, 80 pass, 0 fail, 1 explicit opt-in live-MRMIC skip.
+- Experimental style-control foundation: provider-neutral `StyleConstraintPacket`, six-dimensional `SameSeriesObservation`, and project-local human pairwise preference contracts; uncalibrated observations always remain `UNVERIFIED`.
+- Full validation snapshot: 89 tests, 88 pass, 0 fail, 1 explicit opt-in live-MRMIC skip.
 - Private source/reference and generated candidate image bytes remain Git-ignored and are not distributed by this repository.
 
-See `docs/mvp/MVP_ACCEPTANCE_REPORT_v0.1.md` for the pre-MVP baseline and `docs/mvp/REAL_MVP_CHARACTER_REMASTER_ACCEPTANCE_v0.1.md` for current evidence and non-claims.
+See `docs/mvp/MVP_ACCEPTANCE_REPORT_v0.1.md` for the pre-MVP baseline,
+`docs/mvp/REAL_MVP_CHARACTER_REMASTER_ACCEPTANCE_v0.1.md` for current Real MVP evidence,
+and `docs/style-control/SAME_SERIES_CALIBRATION_FOUNDATION_v0.1.md` for the uncalibrated
+same-series contracts and non-claims.
 
 ## Next real-MVP gates
 
 1. Keep Repair A as the private experimental current version; any further hand-only refinement must branch again and pass the same evaluation/human-review gate.
-2. Replace the private game-research source pack with assets carrying sufficient rights evidence before claiming strict Real MVP PASS or public asset distribution.
+2. Calibrate the six-dimensional same-series evaluator with repeated exact-pair observations, counterexamples, evaluator provenance, and human disagreement records; the current 1086 benchmark intake is private and uncalibrated.
+3. Replace the private game-research source pack with assets carrying sufficient rights evidence before claiming strict Real MVP PASS or public asset distribution.
 
 ## License
 

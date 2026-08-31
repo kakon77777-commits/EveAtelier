@@ -1,0 +1,85 @@
+{
+  "observation": {
+    "schema": "eve-atelier-same-series-observation/v1",
+    "observationId": "example:same-series-observation:01",
+    "stylePacketId": "example:style-packet:01",
+    "calibrationStatus": "EXPERIMENTAL_UNCALIBRATED",
+    "source": {
+      "artifactId": "example:source:01",
+      "sha256": "2222222222222222222222222222222222222222222222222222222222222222"
+    },
+    "candidate": {
+      "artifactId": "example:candidate:01",
+      "sha256": "3333333333333333333333333333333333333333333333333333333333333333"
+    },
+    "references": [
+      {
+        "artifactId": "example:style-core-reference:01",
+        "sha256": "1111111111111111111111111111111111111111111111111111111111111111"
+      }
+    ],
+    "evaluator": {
+      "evaluatorId": "example:human-assisted-same-series-observer",
+      "evaluatorVersion": "0.1.0",
+      "measurement": "structured_visual_observation",
+      "limits": [
+        "This example contains no measured visual judgment.",
+        "No calibrated acceptance thresholds exist."
+      ]
+    },
+    "dimensions": {
+      "surfaceRendering": {
+        "status": "UNKNOWN",
+        "confidence": 0,
+        "evidenceRefs": ["example:evidence:not-measured"],
+        "notes": "Populate with bounded evidence before use."
+      },
+      "proportionSyntax": {
+        "status": "UNKNOWN",
+        "confidence": 0,
+        "evidenceRefs": ["example:evidence:not-measured"],
+        "notes": "Populate with bounded evidence before use."
+      },
+      "garmentVolume": {
+        "status": "UNKNOWN",
+        "confidence": 0,
+        "evidenceRefs": ["example:evidence:not-measured"],
+        "notes": "Populate with bounded evidence before use."
+      },
+      "compositionRhythm": {
+        "status": "UNKNOWN",
+        "confidence": 0,
+        "evidenceRefs": ["example:evidence:not-measured"],
+        "notes": "Populate with bounded evidence before use."
+      },
+      "detailLanguage": {
+        "status": "UNKNOWN",
+        "confidence": 0,
+        "evidenceRefs": ["example:evidence:not-measured"],
+        "notes": "Populate with bounded evidence before use."
+      },
+      "paletteCompatibility": {
+        "status": "UNKNOWN",
+        "confidence": 0,
+        "evidenceRefs": ["example:evidence:not-measured"],
+        "notes": "Populate with bounded evidence before use."
+      }
+    },
+    "createdAt": "2026-08-31T00:00:00+08:00"
+  },
+  "humanPreference": {
+    "schema": "eve-atelier-human-pairwise-preference/v1",
+    "preferenceId": "example:human-pairwise-preference:01",
+    "scope": {
+      "kind": "PROJECT_LOCAL",
+      "projectId": "example:eveatelier-project",
+      "taskId": "example:character-style-task:01"
+    },
+    "leftArtifactId": "example:candidate:01",
+    "rightArtifactId": "example:candidate:02",
+    "preferred": "NEITHER",
+    "reason": "Example only; no human preference was measured.",
+    "observedAt": "2026-08-31T00:00:00+08:00",
+    "evidenceClass": "human_observed"
+  }
+}
