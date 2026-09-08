@@ -188,6 +188,17 @@ export class VusdEvidenceStore {
         `counterfactual_closure_source_operator_required:${operatorKey(prediction.operatorRef)}`,
       );
     }
+    const declaredEffectlessParticipant = prediction.intervention.minimalClosureOperatorRefs
+      .find(ref => (
+        operatorKey(ref) !== operatorKey(prediction.operatorRef)
+        && operators.get(operatorKey(ref)).effects.length === 0
+      ));
+    if (declaredEffectlessParticipant) {
+      throw new Error(
+        'counterfactual_closure_operator_declared_effects_empty:'
+          + operatorKey(declaredEffectlessParticipant),
+      );
+    }
     const unknownDelta = prediction.predictedDeltas.find(delta => !axes.has(delta.axisId));
     if (unknownDelta) throw new Error(`counterfactual_axis_not_found:${unknownDelta.axisId}`);
 

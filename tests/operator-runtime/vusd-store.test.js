@@ -259,6 +259,75 @@ test('classifies directional mismatch and unknown evidence without upgrading eit
   }
 });
 
+test('retains a non-source closure participant with a declared semantic effect', () => {
+  const store = new OperatorRegistryStore({ path: ':memory:' });
+  try {
+    const pack = validPack();
+    pack.families.push({
+      familyId: 'visual.family.semantic.identity-stabilizer',
+      version: '1.0.0',
+      description: 'Synthetic structural closure contributor.',
+      abstraction: 'EVALUATION',
+      variants: [{
+        operatorId: 'visual.op.semantic.identity_stabilizer',
+        version: '1.0.0',
+        description: 'Declare an identity-axis contribution.',
+        executionMode: 'PROVIDER_BOUND',
+        inputKinds: ['art.document'],
+        outputKinds: ['art.document'],
+        parameterSchema: [],
+        receiptMetadataSchema: [],
+        effects: [{ axisId: 'semantic.axis.example.identity', mode: 'PRESERVE' }],
+        requiredLockIds: ['semantic.lock.example.identity'],
+        requiredCapabilities: [],
+        locality: 'GLOBAL',
+        determinism: 'DETERMINISTIC',
+        reversibility: 'REVERSIBLE',
+        authority: 'OBSERVATION_ONLY',
+      }],
+    });
+    const ref = store.registerPack({
+      pack,
+      proposer: { kind: 'HUMAN', id: 'human:local-reviewer' },
+      registeredAt: '2026-09-01T01:00:00+08:00',
+    });
+    const value = prediction(ref);
+    value.predictedDeltas.push(
+      delta('semantic.axis.example.identity', 'STABLE', 'SMALL'),
+    );
+    value.intervention.minimalClosureOperatorRefs.push(
+      operatorRef('visual.op.semantic.identity_stabilizer'),
+    );
+
+    assert.deepEqual(store.appendCounterfactualPrediction(value), value);
+  } finally {
+    store.close();
+  }
+});
+
+test('rejects an effectless non-source closure participant before durable append', () => {
+  const store = new OperatorRegistryStore({ path: ':memory:' });
+  try {
+    const ref = register(store);
+    const value = prediction(ref);
+    value.predictionId = 'counterfactual:prediction:effectless-closure';
+    value.intervention.minimalClosureOperatorRefs.push(
+      operatorRef('visual.op.raster.resize'),
+    );
+
+    assert.throws(
+      () => store.appendCounterfactualPrediction(value),
+      /counterfactual_closure_operator_declared_effects_empty:visual.op.raster.resize@1.0.0/,
+    );
+    assert.throws(
+      () => store.getCounterfactualPrediction(value.predictionId),
+      /counterfactual_prediction_not_found/,
+    );
+  } finally {
+    store.close();
+  }
+});
+
 test('fails closed on dangling prediction, axes, closure operators, residuals, and components', () => {
   const cases = [
     ['observation without prediction', (store, ref) => {

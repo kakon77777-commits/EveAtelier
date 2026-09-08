@@ -24,7 +24,7 @@ Counterfactual Prediction
 | Artifact | logical artifact ID + SHA-256 | 不保存圖片 bytes 或本機路徑 |
 | Visual Decision / Intervention | `operatorRef` + `axisChanges` + `target` | 必須解析到 exact pack snapshot |
 | Shared-domain state | pack-defined `semantic.axis.*` | bootstrap axes，不是最終本體 |
-| Minimal Causal Closure | `minimalClosureOperatorRefs[]` | 每個 ref 必須存在於 exact pack |
+| Minimal Causal Closure | `minimalClosureOperatorRefs[]` | 每個 ref 必須存在於 exact pack；非 source participant 必須至少宣告一個 semantic effect |
 | Preservation constraint | `lockIds[]` | 每個 lock 必須存在於 exact pack |
 | Predicted Counterfactual | immutable prediction record | 不能含 observed outcome |
 | Observed Counterfactual | later immutable observation record | 必須綁 prediction，時間晚於 prediction |
@@ -62,6 +62,8 @@ Counterfactual Prediction
 
 Prediction schema 不接受 `observedDeltas`、provider binding、acceptance、status 或 promotion 欄位。
 Store resolution 另外要求 `target.kind` 必須存在於 source operator 的 `inputKinds`，且 intervention 必須提供 source operator 的全部 `requiredLockIds`。
+
+`minimalClosureOperatorRefs` 的 runtime gate 只驗證可由目前 pack metadata 證明的結構必要條件：source 必須存在；每個 participant 必須 exact-resolve；非 source participant 的 `effects` 不得為空。這會拒絕把沒有任何 declared semantic effect 的執行機械（例如 synthetic raster resize）塞進 closure，但不表示通過者已被證明具有真實物理、知覺或因果相關性。
 
 ### 3.2 Observation
 
@@ -132,6 +134,7 @@ Comparison 是純衍生 projection，不成為 evidence source：
 - Observation 不能在 prediction 之前或同時建立。
 - Pack、axis、lock、operator、closure component 與 residual refs 全部 exact-resolve，否則 fail closed。
 - Exact operator binding 同時約束 target input kind 與 required locks，不能只核對 operator ID/version。
+- 新 prediction 的非 source closure participant 若 `effects=[]`，以 `counterfactual_closure_operator_declared_effects_empty` 拒絕；既有 durable records 不回寫、不刪除、不追溯重分類。
 - Operator proposal 不修改 pack，也不建立 lifecycle transition。
 - Existing Phase 2A HUMAN calibration / activation gate 保持唯一有效。
 - Comparison output 不是 evaluation、acceptance、promotion 或 theory truth。
@@ -167,7 +170,7 @@ Tracked fixture `fixtures/operator_runtime/vusd-counterfactual.example.json` 完
 1. Prediction、observation、proposal 使用三個 strict schemas，未知欄位拒絕。
 2. Prediction 與 observation 分表且 append-only。
 3. Observation 必須引用存在且較早的 prediction。
-4. Axis、lock、operator 與 minimal closure 必須由 exact pack snapshot 驗證；closure 必須包含實際 intervention operator。
+4. Axis、lock、operator 與 minimal closure 必須由 exact pack snapshot 驗證；closure 必須包含實際 intervention operator，且非 source participant 必須具有非空 declared semantic effects。
 5. 未預測影響只能進 collateral。
 6. Residual comparison 可區分 match、partial、mismatch、unresolved 與 collateral。
 7. Proposal 必須引用已存在 observation residual 與合法 component operators。
@@ -184,6 +187,7 @@ Tracked fixture `fixtures/operator_runtime/vusd-counterfactual.example.json` 完
 - 不表示 EXP-00 / EXP-01 已跨模型、跨角色或跨文化驗證。
 - 不啟動 RVGR L1/L2、SEDB-Visual、ISQL、MRMIC mutation 或生成圖 MOD。
 - 不把 synthetic fixture 升格成 real visual evidence。
+- 不宣稱目前 metadata 能證明 causal minimality；權威 causal dependency graph、Unknown closure participation 與 explicit coupling-role schema 仍是 `NotMeasured / NOT_IMPLEMENTED`。
 
 ## 10. Candidate verification
 
@@ -192,7 +196,7 @@ npm run check
 checked_js=31 checked_python=true
 
 npm test
-137 tests / 136 pass / 0 fail / 1 explicit live-MRMIC opt-in skip
+139 tests / 138 pass / 0 fail / 1 explicit live-MRMIC opt-in skip
 
 git diff --check
 exit 0
