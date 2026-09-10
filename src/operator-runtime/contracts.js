@@ -23,6 +23,11 @@ const variantFields = Object.freeze([
   'parameterSchema', 'receiptMetadataSchema', 'effects', 'requiredLockIds', 'requiredCapabilities', 'locality',
   'determinism', 'reversibility', 'authority',
 ]);
+const variantV2Fields = Object.freeze([
+  ...variantFields,
+  'preconditions', 'postconditions', 'failureClasses', 'preservation', 'fallbackDecisions',
+]);
+const preservationFields = Object.freeze(['identity', 'style', 'structure']);
 const parameterFields = Object.freeze(['name', 'kind', 'required', 'min', 'max']);
 const effectFields = Object.freeze(['axisId', 'mode']);
 const compilerRuleFields = Object.freeze([
@@ -277,7 +282,7 @@ function validateParameter(parameter, operatorId) {
   if (providerParameterName.test(parameter.name)) {
     return `operator_parameter_name_forbidden:${operatorId}:${parameter.name}`;
   }
-  if (!['INTEGER', 'NUMBER', 'STRING', 'BOOLEAN', 'NUMBER_ARRAY'].includes(parameter.kind)) {
+  if (!['INTEGER', 'NUMBER', 'STRING', 'BOOLEAN', 'NUMBER_ARRAY', 'JSON_ARRAY'].includes(parameter.kind)) {
     return `operator_parameter_kind_invalid:${operatorId}:${parameter.name}`;
   }
   if (typeof parameter.required !== 'boolean') {
@@ -306,9 +311,12 @@ function validateEffect(effect, axisIds) {
   return null;
 }
 
-function validateVariant(variant, axisIds, lockIds) {
+function validateVariant(variant, axisIds, lockIds, packSchema) {
   if (!isObject(variant)) return 'operator_variant_must_be_object';
-  const extra = unknownKey(variant, variantFields);
+  const fields = packSchema === 'eve-atelier-operator-pack/v2'
+    ? variantV2Fields
+    : variantFields;
+  const extra = unknownKey(variant, fields);
   if (extra !== undefined) return `operator_variant_field_forbidden:${extra}`;
   if (!nonEmptyString(variant.operatorId) || !variant.operatorId.startsWith('visual.op.')) {
     return 'operator_id_must_be_visual_namespace';
@@ -371,10 +379,26 @@ function validateVariant(variant, axisIds, lockIds) {
   if (!['CANDIDATE_ONLY', 'OBSERVATION_ONLY'].includes(variant.authority)) {
     return `operator_authority_forbidden:${variant.operatorId}`;
   }
+  if (packSchema === 'eve-atelier-operator-pack/v2') {
+    if (!uniqueStrings(variant.preconditions)
+        || !uniqueStrings(variant.postconditions, { nonEmpty: true })
+        || !uniqueStrings(variant.failureClasses, { nonEmpty: true })
+        || !isObject(variant.preservation)
+        || hasUnknownKey(variant.preservation, preservationFields)
+        || preservationFields.some(name => !['NONE', 'LOW', 'MEDIUM', 'HIGH', 'STRICT', 'CHANGES'].includes(
+          variant.preservation[name],
+        ))
+        || !uniqueStrings(variant.fallbackDecisions, { nonEmpty: true })
+        || variant.fallbackDecisions.some(decision => ![
+          'REBIND', 'RESAMPLE', 'REPAIR', 'RECOMPILE_REQUEST', 'SWITCH_BACKEND', 'ASK_HUMAN',
+        ].includes(decision))) {
+      return `operator_v2_semantics_invalid:${variant.operatorId}`;
+    }
+  }
   return null;
 }
 
-function validateFamily(family, axisIds, lockIds) {
+function validateFamily(family, axisIds, lockIds, packSchema) {
   if (!isObject(family)) return 'operator_family_must_be_object';
   const extra = unknownKey(family, familyFields);
   if (extra !== undefined) return `operator_family_field_forbidden:${extra}`;
@@ -390,7 +414,7 @@ function validateFamily(family, axisIds, lockIds) {
     return `operator_family_variants_required:${family.familyId}`;
   }
   for (const variant of family.variants) {
-    const failure = validateVariant(variant, axisIds, lockIds);
+    const failure = validateVariant(variant, axisIds, lockIds, packSchema);
     if (failure) return failure;
   }
   return null;
@@ -435,7 +459,7 @@ export function validateOperatorPack(value) {
   const extra = unknownKey(value, packFields);
   if (extra !== undefined) return { ok: false, reason: `operator_pack_field_forbidden:${extra}` };
   if (containsLocalPath(value)) return { ok: false, reason: 'operator_pack_local_path_forbidden' };
-  if (value.schema !== 'eve-atelier-operator-pack/v1') {
+  if (!['eve-atelier-operator-pack/v1', 'eve-atelier-operator-pack/v2'].includes(value.schema)) {
     return { ok: false, reason: 'unsupported_operator_pack_schema' };
   }
   if (!nonEmptyString(value.packId)) return { ok: false, reason: 'operator_pack_id_required' };
@@ -469,7 +493,7 @@ export function validateOperatorPack(value) {
   const operators = new Map();
   const familyRefs = new Set();
   for (const family of value.families) {
-    const failure = validateFamily(family, axisIds, lockIds);
+    const failure = validateFamily(family, axisIds, lockIds, value.schema);
     if (failure) return { ok: false, reason: failure };
     const familyRef = `${family.familyId}@${family.version}`;
     if (familyRefs.has(familyRef)) return { ok: false, reason: `duplicate_operator_family:${familyRef}` };

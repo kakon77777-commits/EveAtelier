@@ -1,6 +1,6 @@
 {
   "name": "eve-atelier",
-  "version": "0.0.0-pre-mvp",
+  "version": "0.2.0-rc.1",
   "private": true,
   "type": "module",
   "engines": {
@@ -12,7 +12,7 @@
     "real-mvp:probe": "node scripts/real-mvp/runtime-probe.mjs",
     "real-mvp:run": "node scripts/real-mvp/run-character-remaster.mjs"
   },
-  "optionalDependencies": {
-    "sharp": "^0.35.3"
+  "dependencies": {
+    "sharp": "0.35.4"
   }
 }

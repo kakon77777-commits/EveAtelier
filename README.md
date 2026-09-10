@@ -6,11 +6,16 @@ The project is designed around a simple premise: AI should work with explicit vi
 
 ## Status
 
-**Pre-MVP foundation with a measured private Basic MVP review batch.** The architecture, provider boundaries, evaluation, review gate, promotion gate, and MRMIC bridge are executable on `main`.
+**v0.2 Workbench Core integration candidate.** The feature branch now connects typed
+operators, provider capabilities, immutable ArtDocument state, a production
+Sharp/libvips raster provider, evaluation/review authority, and optional non-owning
+MRMIC projection. `main` remains the earlier Basic MVP baseline until a separate merge
+decision.
 
 Current acceptance state:
 
 - **Architecture / Workbench acceptance: PASS**
+- **v0.2 Workbench Core local acceptance: PASS on the feature candidate**
 - **Private local Basic MVP: PASS through human review, promotion, and candidate-specific MRMIC verification**
 - **Strict Real generative visual MVP: PARTIAL**
 
@@ -56,6 +61,13 @@ The initial pre-MVP engineering sequence has been executed:
 
 ## Current implementation
 
+- v0.2 Workbench Core: sealed immutable document-version graphs, content-addressed
+  assets, exact component targeting, v2 provider hard filters, candidate-first commits,
+  bounded fallback outcomes, group-aware compositing, spatial invalidation, and durable
+  MRMIC pre-dispatch idempotency attempts.
+- Production deterministic raster provider: exact `sharp@0.35.4` dependency over
+  libvips with crop, resize, rotate, mask/alpha, localized edge cleanup, recolor,
+  layer/group composite, format, filter, color/profile controls, and large-image proof.
 - OSS inventory / extraction / license audit: complete.
 - Deterministic raster reference provider + OpenRaster: executable.
 - ComfyUI external provider: real local CUDA execution verified with a pinned SD1.5 image-to-image workflow.
@@ -70,7 +82,8 @@ The initial pre-MVP engineering sequence has been executed:
 - Dynamic Operator Registry Kernel: data-loaded axes, locks, families and compiler rules; immutable version digests; REPLACE-safe append-only SQLite evidence; human-gated activation; provider-neutral semantic plans; revision-guarded exact provider receipts; store-issued runtime evidence tokens; PREPARED/COMPLETED/FAILED experience events; and a real registry-bound Pillow resize green control.
 - VUSD counterfactual evidence kernel: immutable pre-generation predictions and later observations; exact pack/axis/lock/minimal-closure validation; declared non-vacuous closure participation; explicit collateral deltas; derived residual comparison; and candidate-only operator proposals that cannot activate or promote themselves.
 - Same-Series Calibration Evidence Kernel: immutable versioned dimension profiles; explicit legacy-v1 adaptation; data-defined additional dimensions; exact same-character and cross-character observations; repeated human preference rounds with retained disagreement; metric-limitation findings; terminal `PROPOSED` threshold candidates; and non-authorizing evidence summaries.
-- Full validation snapshot: 147 tests, 146 pass, 0 fail, 1 explicit opt-in live-MRMIC skip.
+- Feature-candidate validation snapshot: 172 tests, 171 pass, 0 fail, 1 explicit
+  opt-in live-MRMIC skip; `npm audit` reports zero known vulnerabilities.
 - Private source/reference and generated candidate image bytes remain Git-ignored and are not distributed by this repository.
 
 See `docs/mvp/MVP_ACCEPTANCE_REPORT_v0.1.md` for the pre-MVP baseline,
@@ -79,12 +92,17 @@ and `docs/style-control/SAME_SERIES_CALIBRATION_FOUNDATION_v0.1.md` for the unca
 same-series contracts and non-claims. The Phase 2A design and evidence boundaries are in
 `docs/superpowers/specs/2026-08-31-dynamic-operator-registry-kernel-design.md`; the VUSD Phase 2B
 crosswalk is in `docs/superpowers/specs/2026-09-01-vusd-counterfactual-evidence-kernel-design.md`.
+The v0.2 global completion contract is in
+`docs/superpowers/specs/2026-09-11-v02-workbench-core-global-completion.md`, and its
+acceptance/non-claim record is in `docs/mvp/V02_WORKBENCH_CORE_ACCEPTANCE_v0.1.md`.
 
 ## Next real-MVP gates
 
-1. Keep Repair A as the private experimental current version; any further hand-only refinement must branch again and pass the same evaluation/human-review gate.
-2. Populate the Phase 2C kernel with repeated rights-appropriate exact-pair observations, counterexamples, evaluator provenance, human disagreement, and metric-limitation records; the current 1086 benchmark intake remains private, non-pairwise, and uncalibrated.
-3. Replace the private game-research source pack with assets carrying sufficient rights evidence before claiming strict Real MVP PASS or public asset distribution.
+1. Review and integrate the exact v0.2 feature candidate without expanding it into the
+   deferred AADS, RABCL, SEDB-Visual, UI, MOD-output, or generation-seed milestones.
+2. Keep Repair A as the private experimental current version; any further hand-only refinement must branch again and pass the same evaluation/human-review gate.
+3. Populate the Phase 2C kernel with repeated rights-appropriate exact-pair observations, counterexamples, evaluator provenance, human disagreement, and metric-limitation records; the current 1086 benchmark intake remains private, non-pairwise, and uncalibrated.
+4. Replace the private game-research source pack with assets carrying sufficient rights evidence before claiming strict Real MVP PASS or public asset distribution.
 
 ## License
 

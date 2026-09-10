@@ -85,6 +85,8 @@ function parameterValueValid(value, definition) {
       && (!Array.isArray(value) || value.length === 0 || value.some(item => !Number.isFinite(item)))) {
     return false;
   }
+  if (definition.kind === 'JSON_ARRAY'
+      && (!Array.isArray(value) || value.length === 0)) return false;
   if (definition.min !== undefined) {
     const values = Array.isArray(value) ? value : [value];
     if (values.some(item => item < definition.min || item > definition.max)) return false;

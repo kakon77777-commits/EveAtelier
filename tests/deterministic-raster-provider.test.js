@@ -4,7 +4,7 @@ import { mkdtemp, readFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { spawnSync } from 'node:child_process';
-import { PillowRasterProvider, SharpRasterProvider } from '../src/providers/deterministic-raster-provider.js';
+import { PillowRasterProvider, SharpRasterProbe } from '../src/providers/deterministic-raster-provider.js';
 
 function fixture(path, kind='subject') {
   const r=spawnSync('python3',['tests/helpers/fixture-image.py',path,kind],{encoding:'utf8'});
@@ -12,7 +12,7 @@ function fixture(path, kind='subject') {
 }
 
 test('sharp provider exposes an honest unavailable probe when sharp cannot be imported', async () => {
-  const probe = await new SharpRasterProvider().probe();
+  const probe = await new SharpRasterProbe().probe();
   assert.equal(typeof probe.available, 'boolean');
   if (!probe.available) assert.equal(probe.reason, 'sharp_not_installed');
 });

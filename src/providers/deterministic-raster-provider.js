@@ -3,7 +3,7 @@ import { createHash } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 
-export class SharpRasterProvider {
+export class SharpRasterProbe {
   async probe() {
     try {
       const mod = await import('sharp');

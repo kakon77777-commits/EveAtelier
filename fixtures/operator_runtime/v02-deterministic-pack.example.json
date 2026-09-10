@@ -1,0 +1,281 @@
+{
+  "schema": "eve-atelier-operator-pack/v2",
+  "packId": "operator-pack:eveatelier-v02-deterministic",
+  "version": "1.0.0",
+  "description": "Public deterministic operator pack for the v0.2 Workbench Core.",
+  "axes": [],
+  "locks": [],
+  "families": [
+    {
+      "familyId": "visual.family.raster.production",
+      "version": "1.0.0",
+      "description": "Deterministic raster and compositing operations.",
+      "abstraction": "EXECUTABLE",
+      "variants": [
+        {
+          "operatorId": "visual.op.raster.crop",
+          "version": "1.0.0",
+          "description": "Crop an immutable raster into a derived candidate.",
+          "executionMode": "PROVIDER_BOUND",
+          "inputKinds": ["raster.image"],
+          "outputKinds": ["raster.image"],
+          "parameterSchema": [
+            {"name": "left", "kind": "INTEGER", "required": true, "min": 0, "max": 16384},
+            {"name": "top", "kind": "INTEGER", "required": true, "min": 0, "max": 16384},
+            {"name": "width", "kind": "INTEGER", "required": true, "min": 1, "max": 16384},
+            {"name": "height", "kind": "INTEGER", "required": true, "min": 1, "max": 16384}
+          ],
+          "receiptMetadataSchema": [
+            {"name": "width", "kind": "INTEGER", "required": true, "min": 1, "max": 16384},
+            {"name": "height", "kind": "INTEGER", "required": true, "min": 1, "max": 16384},
+            {"name": "format", "kind": "STRING", "required": true},
+            {"name": "channels", "kind": "INTEGER", "required": true, "min": 1, "max": 16},
+            {"name": "hasAlpha", "kind": "BOOLEAN", "required": true},
+            {"name": "colourspace", "kind": "STRING", "required": true}
+          ],
+          "effects": [], "requiredLockIds": [], "requiredCapabilities": ["raster.crop"],
+          "locality": "GLOBAL", "determinism": "DETERMINISTIC", "reversibility": "COMPENSATABLE", "authority": "CANDIDATE_ONLY",
+          "preconditions": ["target_resolved", "input_raster_verified"],
+          "postconditions": ["derived_raster_exists", "source_hash_preserved"],
+          "failureClasses": ["PRECONDITION_FAILED", "OUTPUT_INVALID"],
+          "preservation": {"identity": "HIGH", "style": "STRICT", "structure": "CHANGES"},
+          "fallbackDecisions": ["ASK_HUMAN"]
+        },
+        {
+          "operatorId": "visual.op.raster.resize",
+          "version": "1.0.0",
+          "description": "Resize an immutable raster into a derived candidate.",
+          "executionMode": "PROVIDER_BOUND",
+          "inputKinds": ["raster.image"], "outputKinds": ["raster.image"],
+          "parameterSchema": [
+            {"name": "width", "kind": "INTEGER", "required": true, "min": 1, "max": 16384},
+            {"name": "height", "kind": "INTEGER", "required": true, "min": 1, "max": 16384},
+            {"name": "fit", "kind": "STRING", "required": false}
+          ],
+          "receiptMetadataSchema": [
+            {"name": "width", "kind": "INTEGER", "required": true, "min": 1, "max": 16384},
+            {"name": "height", "kind": "INTEGER", "required": true, "min": 1, "max": 16384},
+            {"name": "format", "kind": "STRING", "required": true},
+            {"name": "channels", "kind": "INTEGER", "required": true, "min": 1, "max": 16},
+            {"name": "hasAlpha", "kind": "BOOLEAN", "required": true},
+            {"name": "colourspace", "kind": "STRING", "required": true}
+          ],
+          "effects": [], "requiredLockIds": [], "requiredCapabilities": ["raster.resize"],
+          "locality": "GLOBAL", "determinism": "DETERMINISTIC", "reversibility": "COMPENSATABLE", "authority": "CANDIDATE_ONLY",
+          "preconditions": ["target_resolved", "input_raster_verified"],
+          "postconditions": ["derived_raster_exists", "source_hash_preserved"],
+          "failureClasses": ["PRECONDITION_FAILED", "OUTPUT_INVALID"],
+          "preservation": {"identity": "HIGH", "style": "STRICT", "structure": "CHANGES"},
+          "fallbackDecisions": ["ASK_HUMAN"]
+        },
+        {
+          "operatorId": "visual.op.raster.rotate",
+          "version": "1.0.0",
+          "description": "Rotate an immutable raster into a derived candidate.",
+          "executionMode": "PROVIDER_BOUND",
+          "inputKinds": ["raster.image"], "outputKinds": ["raster.image"],
+          "parameterSchema": [{"name": "angle", "kind": "NUMBER", "required": true, "min": -360, "max": 360}],
+          "receiptMetadataSchema": [
+            {"name": "width", "kind": "INTEGER", "required": true, "min": 1, "max": 16384},
+            {"name": "height", "kind": "INTEGER", "required": true, "min": 1, "max": 16384},
+            {"name": "format", "kind": "STRING", "required": true},
+            {"name": "channels", "kind": "INTEGER", "required": true, "min": 1, "max": 16},
+            {"name": "hasAlpha", "kind": "BOOLEAN", "required": true},
+            {"name": "colourspace", "kind": "STRING", "required": true}
+          ],
+          "effects": [], "requiredLockIds": [], "requiredCapabilities": ["raster.rotate"],
+          "locality": "GLOBAL", "determinism": "DETERMINISTIC", "reversibility": "COMPENSATABLE", "authority": "CANDIDATE_ONLY",
+          "preconditions": ["target_resolved", "input_raster_verified"],
+          "postconditions": ["derived_raster_exists", "source_hash_preserved"],
+          "failureClasses": ["PRECONDITION_FAILED", "OUTPUT_INVALID"],
+          "preservation": {"identity": "HIGH", "style": "STRICT", "structure": "CHANGES"},
+          "fallbackDecisions": ["ASK_HUMAN"]
+        },
+        {
+          "operatorId": "visual.op.raster.create_mask",
+          "version": "1.0.0",
+          "description": "Create a deterministic foreground mask.",
+          "executionMode": "PROVIDER_BOUND",
+          "inputKinds": ["raster.image"], "outputKinds": ["raster.mask"],
+          "parameterSchema": [
+            {"name": "background", "kind": "NUMBER_ARRAY", "required": true, "min": 0, "max": 255},
+            {"name": "tolerance", "kind": "NUMBER", "required": true, "min": 0, "max": 442}
+          ],
+          "receiptMetadataSchema": [
+            {"name": "width", "kind": "INTEGER", "required": true, "min": 1, "max": 16384},
+            {"name": "height", "kind": "INTEGER", "required": true, "min": 1, "max": 16384},
+            {"name": "format", "kind": "STRING", "required": true},
+            {"name": "channels", "kind": "INTEGER", "required": true, "min": 1, "max": 16},
+            {"name": "hasAlpha", "kind": "BOOLEAN", "required": true},
+            {"name": "colourspace", "kind": "STRING", "required": true},
+            {"name": "mask", "kind": "BOOLEAN", "required": true}
+          ],
+          "effects": [], "requiredLockIds": [], "requiredCapabilities": ["raster.mask"],
+          "locality": "GLOBAL", "determinism": "DETERMINISTIC", "reversibility": "REVERSIBLE", "authority": "CANDIDATE_ONLY",
+          "preconditions": ["target_resolved", "input_raster_verified"],
+          "postconditions": ["mask_asset_exists"],
+          "failureClasses": ["PRECONDITION_FAILED", "OUTPUT_INVALID"],
+          "preservation": {"identity": "STRICT", "style": "STRICT", "structure": "STRICT"},
+          "fallbackDecisions": ["RECOMPILE_REQUEST", "ASK_HUMAN"]
+        },
+        {
+          "operatorId": "visual.op.raster.create_alpha",
+          "version": "1.0.0",
+          "description": "Apply a verified mask as raster alpha.",
+          "executionMode": "PROVIDER_BOUND",
+          "inputKinds": ["raster.image"], "outputKinds": ["raster.image"],
+          "parameterSchema": [{"name": "mask", "kind": "STRING", "required": true}],
+          "receiptMetadataSchema": [
+            {"name": "width", "kind": "INTEGER", "required": true, "min": 1, "max": 16384},
+            {"name": "height", "kind": "INTEGER", "required": true, "min": 1, "max": 16384},
+            {"name": "format", "kind": "STRING", "required": true},
+            {"name": "channels", "kind": "INTEGER", "required": true, "min": 1, "max": 16},
+            {"name": "hasAlpha", "kind": "BOOLEAN", "required": true},
+            {"name": "colourspace", "kind": "STRING", "required": true}
+          ],
+          "effects": [], "requiredLockIds": [], "requiredCapabilities": ["raster.alpha"],
+          "locality": "GLOBAL", "determinism": "DETERMINISTIC", "reversibility": "COMPENSATABLE", "authority": "CANDIDATE_ONLY",
+          "preconditions": ["target_resolved", "mask_asset_verified"],
+          "postconditions": ["output_alpha_explicit", "source_color_preserved"],
+          "failureClasses": ["PRECONDITION_FAILED", "OUTPUT_INVALID"],
+          "preservation": {"identity": "STRICT", "style": "STRICT", "structure": "STRICT"},
+          "fallbackDecisions": ["REPAIR", "ASK_HUMAN"]
+        },
+        {
+          "operatorId": "visual.op.raster.edge_cleanup",
+          "version": "1.0.0",
+          "description": "Clean alpha edges on a derived raster.",
+          "executionMode": "PROVIDER_BOUND",
+          "inputKinds": ["raster.image"], "outputKinds": ["raster.image"],
+          "parameterSchema": [
+            {"name": "radius", "kind": "INTEGER", "required": true, "min": 0, "max": 32},
+            {"name": "mask", "kind": "STRING", "required": true}
+          ],
+          "receiptMetadataSchema": [
+            {"name": "width", "kind": "INTEGER", "required": true, "min": 1, "max": 16384},
+            {"name": "height", "kind": "INTEGER", "required": true, "min": 1, "max": 16384},
+            {"name": "format", "kind": "STRING", "required": true},
+            {"name": "channels", "kind": "INTEGER", "required": true, "min": 1, "max": 16},
+            {"name": "hasAlpha", "kind": "BOOLEAN", "required": true},
+            {"name": "colourspace", "kind": "STRING", "required": true}
+          ],
+          "effects": [], "requiredLockIds": [], "requiredCapabilities": ["raster.edge_cleanup"],
+          "locality": "REGIONAL", "determinism": "DETERMINISTIC", "reversibility": "COMPENSATABLE", "authority": "CANDIDATE_ONLY",
+          "preconditions": ["target_resolved", "input_alpha_explicit"],
+          "postconditions": ["derived_raster_exists", "source_hash_preserved"],
+          "failureClasses": ["PRECONDITION_FAILED", "QUALITY_FAILURE"],
+          "preservation": {"identity": "STRICT", "style": "STRICT", "structure": "STRICT"},
+          "fallbackDecisions": ["REPAIR", "ASK_HUMAN"]
+        },
+        {
+          "operatorId": "visual.op.raster.recolor",
+          "version": "1.0.0",
+          "description": "Apply a deterministic RGB tint.",
+          "executionMode": "PROVIDER_BOUND",
+          "inputKinds": ["raster.image"], "outputKinds": ["raster.image"],
+          "parameterSchema": [{"name": "tint", "kind": "NUMBER_ARRAY", "required": true, "min": 0, "max": 4}],
+          "receiptMetadataSchema": [
+            {"name": "width", "kind": "INTEGER", "required": true, "min": 1, "max": 16384},
+            {"name": "height", "kind": "INTEGER", "required": true, "min": 1, "max": 16384},
+            {"name": "format", "kind": "STRING", "required": true},
+            {"name": "channels", "kind": "INTEGER", "required": true, "min": 1, "max": 16},
+            {"name": "hasAlpha", "kind": "BOOLEAN", "required": true},
+            {"name": "colourspace", "kind": "STRING", "required": true}
+          ],
+          "effects": [], "requiredLockIds": [], "requiredCapabilities": ["raster.recolor"],
+          "locality": "GLOBAL", "determinism": "DETERMINISTIC", "reversibility": "COMPENSATABLE", "authority": "CANDIDATE_ONLY",
+          "preconditions": ["target_resolved", "input_raster_verified"],
+          "postconditions": ["derived_raster_exists", "source_alpha_preserved"],
+          "failureClasses": ["PRECONDITION_FAILED", "QUALITY_FAILURE"],
+          "preservation": {"identity": "STRICT", "style": "CHANGES", "structure": "STRICT"},
+          "fallbackDecisions": ["REPAIR", "ASK_HUMAN"]
+        },
+        {
+          "operatorId": "visual.op.composite.layer_composite",
+          "version": "1.0.0",
+          "description": "Composite one layer with blend, opacity and optional mask.",
+          "executionMode": "PROVIDER_BOUND",
+          "inputKinds": ["raster.image"], "outputKinds": ["raster.image"],
+          "parameterSchema": [
+            {"name": "overlay", "kind": "STRING", "required": false},
+            {"name": "left", "kind": "INTEGER", "required": false, "min": -16384, "max": 16384},
+            {"name": "top", "kind": "INTEGER", "required": false, "min": -16384, "max": 16384},
+            {"name": "opacity", "kind": "NUMBER", "required": false, "min": 0, "max": 1},
+            {"name": "blend", "kind": "STRING", "required": false},
+            {"name": "mask", "kind": "STRING", "required": false},
+            {"name": "stack", "kind": "JSON_ARRAY", "required": false}
+          ],
+          "receiptMetadataSchema": [
+            {"name": "width", "kind": "INTEGER", "required": true, "min": 1, "max": 16384},
+            {"name": "height", "kind": "INTEGER", "required": true, "min": 1, "max": 16384},
+            {"name": "format", "kind": "STRING", "required": true},
+            {"name": "channels", "kind": "INTEGER", "required": true, "min": 1, "max": 16},
+            {"name": "hasAlpha", "kind": "BOOLEAN", "required": true},
+            {"name": "colourspace", "kind": "STRING", "required": true}
+          ],
+          "effects": [], "requiredLockIds": [], "requiredCapabilities": ["raster.layer_composite"],
+          "locality": "GLOBAL", "determinism": "DETERMINISTIC", "reversibility": "COMPENSATABLE", "authority": "CANDIDATE_ONLY",
+          "preconditions": ["target_resolved", "overlay_asset_verified"],
+          "postconditions": ["derived_raster_exists", "layer_order_applied"],
+          "failureClasses": ["PRECONDITION_FAILED", "OUTPUT_INVALID"],
+          "preservation": {"identity": "HIGH", "style": "HIGH", "structure": "HIGH"},
+          "fallbackDecisions": ["REPAIR", "ASK_HUMAN"]
+        },
+        {
+          "operatorId": "visual.op.raster.convert_format",
+          "version": "1.0.0",
+          "description": "Convert raster format while retaining supported metadata.",
+          "executionMode": "PROVIDER_BOUND",
+          "inputKinds": ["raster.image"], "outputKinds": ["raster.image"],
+          "parameterSchema": [
+            {"name": "format", "kind": "STRING", "required": true},
+            {"name": "quality", "kind": "INTEGER", "required": false, "min": 1, "max": 100}
+          ],
+          "receiptMetadataSchema": [
+            {"name": "width", "kind": "INTEGER", "required": true, "min": 1, "max": 16384},
+            {"name": "height", "kind": "INTEGER", "required": true, "min": 1, "max": 16384},
+            {"name": "format", "kind": "STRING", "required": true},
+            {"name": "channels", "kind": "INTEGER", "required": true, "min": 1, "max": 16},
+            {"name": "hasAlpha", "kind": "BOOLEAN", "required": true},
+            {"name": "colourspace", "kind": "STRING", "required": true}
+          ],
+          "effects": [], "requiredLockIds": [], "requiredCapabilities": ["raster.format"],
+          "locality": "GLOBAL", "determinism": "DETERMINISTIC", "reversibility": "COMPENSATABLE", "authority": "CANDIDATE_ONLY",
+          "preconditions": ["target_resolved", "input_raster_verified"],
+          "postconditions": ["derived_raster_exists", "format_recorded"],
+          "failureClasses": ["PRECONDITION_FAILED", "OUTPUT_INVALID"],
+          "preservation": {"identity": "STRICT", "style": "STRICT", "structure": "STRICT"},
+          "fallbackDecisions": ["ASK_HUMAN"]
+        },
+        {
+          "operatorId": "visual.op.raster.basic_filter",
+          "version": "1.0.0",
+          "description": "Apply one bounded deterministic filter and optional colourspace conversion.",
+          "executionMode": "PROVIDER_BOUND",
+          "inputKinds": ["raster.image"], "outputKinds": ["raster.image"],
+          "parameterSchema": [
+            {"name": "filter", "kind": "STRING", "required": true},
+            {"name": "amount", "kind": "NUMBER", "required": true, "min": 0.3, "max": 100},
+            {"name": "colourspace", "kind": "STRING", "required": false}
+          ],
+          "receiptMetadataSchema": [
+            {"name": "width", "kind": "INTEGER", "required": true, "min": 1, "max": 16384},
+            {"name": "height", "kind": "INTEGER", "required": true, "min": 1, "max": 16384},
+            {"name": "format", "kind": "STRING", "required": true},
+            {"name": "channels", "kind": "INTEGER", "required": true, "min": 1, "max": 16},
+            {"name": "hasAlpha", "kind": "BOOLEAN", "required": true},
+            {"name": "colourspace", "kind": "STRING", "required": true}
+          ],
+          "effects": [], "requiredLockIds": [], "requiredCapabilities": ["raster.filter"],
+          "locality": "GLOBAL", "determinism": "DETERMINISTIC", "reversibility": "COMPENSATABLE", "authority": "CANDIDATE_ONLY",
+          "preconditions": ["target_resolved", "input_raster_verified"],
+          "postconditions": ["derived_raster_exists", "colourspace_recorded"],
+          "failureClasses": ["PRECONDITION_FAILED", "OUTPUT_INVALID"],
+          "preservation": {"identity": "HIGH", "style": "CHANGES", "structure": "STRICT"},
+          "fallbackDecisions": ["REPAIR", "ASK_HUMAN"]
+        }
+      ]
+    }
+  ],
+  "compilerRules": []
+}
