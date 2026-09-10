@@ -7,6 +7,10 @@ import {
   compileStyleConstraintPacket,
   createSameSeriesReview,
 } from '../../src/style-control/contracts.js';
+import {
+  CalibrationEvidenceStore,
+  adaptSameSeriesObservation,
+} from '../../src/style-control/calibration-store.js';
 
 async function readJson(relativePath) {
   const url = new URL(`../../${relativePath}`, import.meta.url);
@@ -30,6 +34,45 @@ test('tracked examples exercise the public-safe style and same-series contracts'
   const serialized = JSON.stringify({ packetInput, reviewInput });
   assert.doesNotMatch(serialized, /[A-Za-z]:[\\/]/);
   assert.doesNotMatch(serialized, /(?:source|candidate|reference)Path/i);
+});
+
+test('tracked dimension profile adapts the legacy example without changing its verdict', async () => {
+  const profile = await readJson(
+    'fixtures/style_control/same_series/dimension-profile.example.json',
+  );
+  const reviewInput = await readJson(
+    'fixtures/style_control/same_series/same-series-review.example.json',
+  );
+  const store = new CalibrationEvidenceStore({ path: ':memory:' });
+  try {
+    const profileRef = store.registerProfile({
+      profile,
+      proposer: { kind: 'SYSTEM', id: 'system:synthetic-fixture-loader' },
+      registeredAt: '2026-09-10T20:00:00+08:00',
+    });
+    const observation = adaptSameSeriesObservation({
+      profile,
+      relation: {
+        kind: 'SAME_CHARACTER_EXACT_PAIR',
+        leftCharacterRef: 'character:synthetic:fixture',
+        rightCharacterRef: 'character:synthetic:fixture',
+      },
+      observation: reviewInput.observation,
+    });
+
+    assert.deepEqual(observation.profileRef, profileRef);
+    assert.deepEqual(store.appendObservation(observation), observation);
+    assert.equal(createSameSeriesReview(reviewInput).observationDecision.verdict, 'UNVERIFIED');
+    assert.equal(store.summarizeEvidence({
+      profileRef,
+      scope: observation.scope,
+    }).calibrationStatus, 'EXPERIMENTAL_UNCALIBRATED');
+
+    const serialized = JSON.stringify({ profile, observation });
+    assert.doesNotMatch(serialized, /[A-Za-z]:[\\/]/);
+  } finally {
+    store.close();
+  }
 });
 
 test('the local Reflexive Visual Generation intake is protected from broad Git staging', () => {

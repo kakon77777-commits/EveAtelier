@@ -97,3 +97,30 @@ npm test
 需要同角色 exact pairs、跨角色 counterexamples、重複且可記錄 disagreement 的 human
 pairwise rounds、六維 evaluator provenance、false-positive / metric-blindness 記錄，才可
 提出 threshold candidate。threshold candidate 仍需獨立 review，不能由 observer 自我授權。
+
+## Phase 2C 後續實作（2026-09-11）
+
+Phase 2C 已加入 append-only `CalibrationEvidenceStore` 與版本化 dimension profile：
+
+- 現有六維 v1 observation 經明確 adapter 進入，不靜默改義；
+- 新 profile 版本可由資料增加維度，舊 evidence 仍綁定原 digest；
+- exact same-character pair 與 cross-character counterexample 分開記錄；
+- human preference 以 observation、exact bytes、scope、round、observer 綁定，歧見完整保留；
+- false-positive / metric-blindness finding 可作 counterevidence；
+- threshold candidate 僅能是不可變 `PROPOSED`，store 沒有 activation API；
+- summary 只盤點 distinct pairs、rounds、disagreement 與 finding，並固定回傳所有 authority
+  為 `false`。
+
+這只是校準證據基礎設施。尚未加入任何真實 calibration dataset、數學 threshold fitting、
+獨立 review activation、Workbench promotion 或 MRMIC mutation，因此本文件原有的
+`UNCALIBRATED / FAIL_CLOSED` 結論不變。
+
+Phase 2C fresh verification：
+
+```text
+npm run check
+checked_js=32 checked_python=true
+
+npm test
+147 tests / 146 pass / 0 fail / 1 explicit live-MRMIC opt-in skip
+```

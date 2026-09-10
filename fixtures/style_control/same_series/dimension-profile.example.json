@@ -1,0 +1,44 @@
+{
+  "schema": "eve-atelier-same-series-dimension-profile/v1",
+  "profileId": "profile:eveatelier:same-series-core",
+  "version": "1.0.0",
+  "maturity": "EXPERIMENTAL_UNCALIBRATED",
+  "dimensions": [
+    {
+      "dimensionId": "surfaceRendering",
+      "definitionVersion": "1.0.0",
+      "description": "Synthetic public definition for surface rendering similarity.",
+      "allowedStatuses": ["MATCH", "DRIFT", "UNKNOWN"]
+    },
+    {
+      "dimensionId": "proportionSyntax",
+      "definitionVersion": "1.0.0",
+      "description": "Synthetic public definition for proportion syntax similarity.",
+      "allowedStatuses": ["MATCH", "DRIFT", "UNKNOWN"]
+    },
+    {
+      "dimensionId": "garmentVolume",
+      "definitionVersion": "1.0.0",
+      "description": "Synthetic public definition for garment volume similarity.",
+      "allowedStatuses": ["MATCH", "DRIFT", "UNKNOWN"]
+    },
+    {
+      "dimensionId": "compositionRhythm",
+      "definitionVersion": "1.0.0",
+      "description": "Synthetic public definition for composition rhythm similarity.",
+      "allowedStatuses": ["MATCH", "DRIFT", "UNKNOWN"]
+    },
+    {
+      "dimensionId": "detailLanguage",
+      "definitionVersion": "1.0.0",
+      "description": "Synthetic public definition for detail language similarity.",
+      "allowedStatuses": ["MATCH", "DRIFT", "UNKNOWN"]
+    },
+    {
+      "dimensionId": "paletteCompatibility",
+      "definitionVersion": "1.0.0",
+      "description": "Synthetic public definition for palette compatibility.",
+      "allowedStatuses": ["MATCH", "DRIFT", "UNKNOWN"]
+    }
+  ]
+}
