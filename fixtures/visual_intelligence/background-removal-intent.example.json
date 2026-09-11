@@ -1,0 +1,22 @@
+{
+  "schema": "eve-atelier-visual-intent/v1",
+  "intentId": "intent:example:background-removal",
+  "projectId": "project:example:visual",
+  "documentId": "document:example:subject",
+  "text": "把背景去掉，邊緣不要有白邊。",
+  "taskTypeHint": "UNKNOWN",
+  "references": [],
+  "preferences": [],
+  "hardConstraints": [
+    {
+      "dimension": "IDENTITY",
+      "requirement": "preserve the source subject"
+    }
+  ],
+  "overrides": [],
+  "submittedBy": {
+    "kind": "HUMAN",
+    "id": "human:example:owner"
+  },
+  "submittedAt": "2026-09-11T03:30:00Z"
+}

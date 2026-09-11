@@ -6,16 +6,17 @@ The project is designed around a simple premise: AI should work with explicit vi
 
 ## Status
 
-**v0.2 Workbench Core on `main`.** The repository now connects typed
-operators, provider capabilities, immutable ArtDocument state, a production
-Sharp/libvips raster provider, evaluation/review authority, and optional non-owning
-MRMIC projection. This is the reusable AI-native visual runtime foundation, not an
-image-generator wrapper or a Photoshop clone.
+**v0.3 Visual Intelligence integration candidate over the deployed v0.2 core.** The
+feature branch adds a persistent AADS session/controller, provider-neutral constraint
+compiler and Operator Plan, bounded RABCL workflow runtime, and versioned Project
+Context Home. `main` remains the published v0.2 Workbench Core until a separate v0.3
+integration decision.
 
 Current acceptance state:
 
 - **Architecture / Workbench acceptance: PASS**
 - **v0.2 Workbench Core local acceptance: PASS and integrated on `main`**
+- **v0.3 Visual Intelligence local acceptance: PASS on the feature candidate**
 - **Private local Basic MVP: PASS through human review, promotion, and candidate-specific MRMIC verification**
 - **Strict Real generative visual MVP: PARTIAL**
 
@@ -61,6 +62,18 @@ The initial pre-MVP engineering sequence has been executed:
 
 ## Current implementation
 
+- v0.3 AADS/RABCL: human visual intent compiles into explicit multidimensional
+  constraints, an exact active Operator Plan, and a bounded workflow with sequential,
+  evaluation, fallback, repair-loop, human-gate, promotion, and stop semantics.
+- Event-sourced visual sessions: immutable SQLite history reconstructs node outputs,
+  decisions, budget use, in-flight uncertainty, human wait state, and terminal outcome
+  without relying on chat context.
+- Project Context Home: versioned glossary/operator/document/session/evidence snapshots
+  plus durable digest-bound worker projections with an explicit no-write/no-authority
+  boundary. No external AI worker is invoked by this implementation.
+- v0.3 background-removal evaluator: independently requires alpha separation, exact
+  source/output dimensions and RGB preservation, and zero visible partial-alpha white
+  fringe before acceptance.
 - v0.2 Workbench Core: sealed immutable document-version graphs, content-addressed
   assets, exact component targeting, v2 provider hard filters, candidate-first commits,
   bounded fallback outcomes, group-aware compositing, spatial invalidation, and durable
@@ -82,7 +95,7 @@ The initial pre-MVP engineering sequence has been executed:
 - Dynamic Operator Registry Kernel: data-loaded axes, locks, families and compiler rules; immutable version digests; REPLACE-safe append-only SQLite evidence; human-gated activation; provider-neutral semantic plans; revision-guarded exact provider receipts; store-issued runtime evidence tokens; PREPARED/COMPLETED/FAILED experience events; and a real registry-bound Pillow resize green control.
 - VUSD counterfactual evidence kernel: immutable pre-generation predictions and later observations; exact pack/axis/lock/minimal-closure validation; declared non-vacuous closure participation; explicit collateral deltas; derived residual comparison; and candidate-only operator proposals that cannot activate or promote themselves.
 - Same-Series Calibration Evidence Kernel: immutable versioned dimension profiles; explicit legacy-v1 adaptation; data-defined additional dimensions; exact same-character and cross-character observations; repeated human preference rounds with retained disagreement; metric-limitation findings; terminal `PROPOSED` threshold candidates; and non-authorizing evidence summaries.
-- `main` validation snapshot: 172 tests, 171 pass, 0 fail, 1 explicit
+- Feature-candidate validation snapshot: 196 tests, 195 pass, 0 fail, 1 explicit
   opt-in live-MRMIC skip; `npm audit` reports zero known vulnerabilities.
 - Private source/reference and generated candidate image bytes remain Git-ignored and are not distributed by this repository.
 
@@ -95,17 +108,19 @@ crosswalk is in `docs/superpowers/specs/2026-09-01-vusd-counterfactual-evidence-
 The v0.2 global completion contract is in
 `docs/superpowers/specs/2026-09-11-v02-workbench-core-global-completion.md`, and its
 acceptance/non-claim record is in `docs/mvp/V02_WORKBENCH_CORE_ACCEPTANCE_v0.1.md`.
+The v0.3 completion contract and evidence are in
+`docs/superpowers/specs/2026-09-11-v03-visual-intelligence-global-completion.md` and
+`docs/mvp/V03_VISUAL_INTELLIGENCE_ACCEPTANCE_v0.1.md`.
 
 ## Next real-MVP gates
 
-1. Implement the bounded v0.3 AADS vNext session/controller runtime over the v0.2
-   Operator and ArtDocument authorities; then add RABCL workflow IR without collapsing
-   it into a Provider graph.
-2. Give future external AI workers a project-scoped, versioned context projection and
-   resumable evidence home before asking them to interpret EveAtelier semantic calls;
-   no worker becomes canonical project or aesthetic authority.
-3. Keep Repair A as the private experimental current version; any further hand-only refinement must branch again and pass the same evaluation/human-review gate.
-4. Populate the calibration kernel with rights-appropriate exact-pair observations, counterexamples, evaluator provenance, human disagreement, and metric-limitation records; the current 1086 benchmark intake remains private, non-pairwise, and uncalibrated.
+1. Review and integrate the exact v0.3 feature candidate without expanding it into
+   open-ended language understanding or a Provider-specific workflow graph.
+2. Begin the v0.4 SEDB-Visual / Style Atlas knowledge substrate so AADS can retrieve
+   accepted references, rejected patterns, Provider evidence and project preferences.
+3. Keep future external AI workers behind Project Context Home; no worker becomes
+   canonical project, evaluation, promotion, merge, release, or deployment authority.
+4. Keep Repair A as the private experimental current version; any further hand-only refinement must branch again and pass the same evaluation/human-review gate.
 5. Replace the private game-research source pack with assets carrying sufficient rights evidence before claiming strict Real MVP PASS or public asset distribution.
 
 ## License

@@ -1,0 +1,13 @@
+{
+  "schema": "eve-atelier-worker-context-profile/v1",
+  "profileId": "worker-profile:example:bounded-drafter",
+  "purpose": "Read the project vocabulary and exact operator/document identities before drafting.",
+  "allowedSections": [
+    "GLOSSARY",
+    "OPERATORS",
+    "DOCUMENTS",
+    "AUTHORITIES"
+  ],
+  "maxEntriesPerSection": 32,
+  "createdAt": "2026-09-11T03:31:00Z"
+}
