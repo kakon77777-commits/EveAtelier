@@ -4,7 +4,7 @@ Date: 2026-09-11
 
 Status: `COMMITTED_IMPLEMENTATION_CANDIDATE / LOCAL_ACCEPTANCE`
 
-Branch: `feature/v0.2-workbench-core`
+Source branch: `feature/v0.2-workbench-core`
 
 Base: `main@e676a545f451f1f4820ceb07cb9fbe3992632a98`
 
@@ -167,5 +167,11 @@ npm audit --json
 - AADS, RABCL, SEDB-Visual, the human UI, sister-runtime work, and generation-seed
   research remain later milestones.
 
-The next authorized integration action is to push this exact feature-branch candidate.
-Merging to `main` is a separate decision.
+## Integration supersession
+
+The preceding non-claims record the authority state at acceptance time. On 2026-09-11,
+the user separately authorized merge, update, and publication. Local `main` was
+fast-forwarded from `e676a545f451f1f4820ceb07cb9fbe3992632a98` to the exact accepted
+source commit `bab2a4abf940399d3d5bcdac7c765b856a0a3f42`; the user's untracked research
+documents and backup archive remained outside the merge. GitHub `main` publication is
+verified separately after the integration documentation commit is pushed.

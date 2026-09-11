@@ -6,16 +6,16 @@ The project is designed around a simple premise: AI should work with explicit vi
 
 ## Status
 
-**v0.2 Workbench Core integration candidate.** The feature branch now connects typed
+**v0.2 Workbench Core on `main`.** The repository now connects typed
 operators, provider capabilities, immutable ArtDocument state, a production
 Sharp/libvips raster provider, evaluation/review authority, and optional non-owning
-MRMIC projection. `main` remains the earlier Basic MVP baseline until a separate merge
-decision.
+MRMIC projection. This is the reusable AI-native visual runtime foundation, not an
+image-generator wrapper or a Photoshop clone.
 
 Current acceptance state:
 
 - **Architecture / Workbench acceptance: PASS**
-- **v0.2 Workbench Core local acceptance: PASS on the feature candidate**
+- **v0.2 Workbench Core local acceptance: PASS and integrated on `main`**
 - **Private local Basic MVP: PASS through human review, promotion, and candidate-specific MRMIC verification**
 - **Strict Real generative visual MVP: PARTIAL**
 
@@ -82,7 +82,7 @@ The initial pre-MVP engineering sequence has been executed:
 - Dynamic Operator Registry Kernel: data-loaded axes, locks, families and compiler rules; immutable version digests; REPLACE-safe append-only SQLite evidence; human-gated activation; provider-neutral semantic plans; revision-guarded exact provider receipts; store-issued runtime evidence tokens; PREPARED/COMPLETED/FAILED experience events; and a real registry-bound Pillow resize green control.
 - VUSD counterfactual evidence kernel: immutable pre-generation predictions and later observations; exact pack/axis/lock/minimal-closure validation; declared non-vacuous closure participation; explicit collateral deltas; derived residual comparison; and candidate-only operator proposals that cannot activate or promote themselves.
 - Same-Series Calibration Evidence Kernel: immutable versioned dimension profiles; explicit legacy-v1 adaptation; data-defined additional dimensions; exact same-character and cross-character observations; repeated human preference rounds with retained disagreement; metric-limitation findings; terminal `PROPOSED` threshold candidates; and non-authorizing evidence summaries.
-- Feature-candidate validation snapshot: 172 tests, 171 pass, 0 fail, 1 explicit
+- `main` validation snapshot: 172 tests, 171 pass, 0 fail, 1 explicit
   opt-in live-MRMIC skip; `npm audit` reports zero known vulnerabilities.
 - Private source/reference and generated candidate image bytes remain Git-ignored and are not distributed by this repository.
 
@@ -98,11 +98,15 @@ acceptance/non-claim record is in `docs/mvp/V02_WORKBENCH_CORE_ACCEPTANCE_v0.1.m
 
 ## Next real-MVP gates
 
-1. Review and integrate the exact v0.2 feature candidate without expanding it into the
-   deferred AADS, RABCL, SEDB-Visual, UI, MOD-output, or generation-seed milestones.
-2. Keep Repair A as the private experimental current version; any further hand-only refinement must branch again and pass the same evaluation/human-review gate.
-3. Populate the Phase 2C kernel with repeated rights-appropriate exact-pair observations, counterexamples, evaluator provenance, human disagreement, and metric-limitation records; the current 1086 benchmark intake remains private, non-pairwise, and uncalibrated.
-4. Replace the private game-research source pack with assets carrying sufficient rights evidence before claiming strict Real MVP PASS or public asset distribution.
+1. Implement the bounded v0.3 AADS vNext session/controller runtime over the v0.2
+   Operator and ArtDocument authorities; then add RABCL workflow IR without collapsing
+   it into a Provider graph.
+2. Give future external AI workers a project-scoped, versioned context projection and
+   resumable evidence home before asking them to interpret EveAtelier semantic calls;
+   no worker becomes canonical project or aesthetic authority.
+3. Keep Repair A as the private experimental current version; any further hand-only refinement must branch again and pass the same evaluation/human-review gate.
+4. Populate the calibration kernel with rights-appropriate exact-pair observations, counterexamples, evaluator provenance, human disagreement, and metric-limitation records; the current 1086 benchmark intake remains private, non-pairwise, and uncalibrated.
+5. Replace the private game-research source pack with assets carrying sufficient rights evidence before claiming strict Real MVP PASS or public asset distribution.
 
 ## License
 
