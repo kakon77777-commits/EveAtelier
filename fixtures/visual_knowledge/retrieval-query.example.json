@@ -1,0 +1,19 @@
+{
+  "taskType": "BACKGROUND_REMOVAL",
+  "dimensions": [
+    "IDENTITY",
+    "EDGE",
+    "ALPHA",
+    "SURFACE_RENDERING"
+  ],
+  "roles": [
+    "IDENTITY_REFERENCE",
+    "LINE_REFERENCE",
+    "NEGATIVE_REFERENCE"
+  ],
+  "allowedRightsClasses": [
+    "RIGHTS_CLEAR"
+  ],
+  "text": "accepted fine line background removal identity edge",
+  "limit": 20
+}

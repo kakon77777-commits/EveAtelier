@@ -1,0 +1,24 @@
+{
+  "schema": "eve-atelier-reference-role/v1",
+  "roleBindingId": "reference-role:example:line",
+  "projectId": "project:example:visual",
+  "referenceAssetId": "reference-asset:example:line",
+  "role": "LINE_REFERENCE",
+  "allowedInfluence": [
+    "STYLE",
+    "SURFACE_RENDERING"
+  ],
+  "scope": {
+    "kind": "PROJECT_LOCAL",
+    "projectId": "project:example:visual",
+    "taskId": null
+  },
+  "evidenceRefs": [
+    "evidence:example:line-role"
+  ],
+  "provenance": {
+    "kind": "HUMAN",
+    "id": "human:example:owner"
+  },
+  "createdAt": "2026-09-12T01:00:00Z"
+}

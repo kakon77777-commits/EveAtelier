@@ -6,16 +6,17 @@ The project is designed around a simple premise: AI should work with explicit vi
 
 ## Status
 
-**v0.3 Visual Intelligence on `main`.** The repository now includes a persistent AADS
-session/controller, provider-neutral constraint
-compiler and Operator Plan, bounded RABCL workflow runtime, and versioned Project
-Context Home over the v0.2 Workbench Core.
+**v0.4 Visual Knowledge integration candidate over the deployed v0.3 runtime.** The
+feature branch adds append-only SEDB-Visual semantic/evidence records, a deterministic
+rebuildable Style Atlas, completed-session ingestion, rights-aware retrieval, explicit
+reference-role binding, and digest-bound AADS retrieval context.
 
 Current acceptance state:
 
 - **Architecture / Workbench acceptance: PASS**
 - **v0.2 Workbench Core local acceptance: PASS and integrated on `main`**
 - **v0.3 Visual Intelligence local acceptance: PASS and integrated on `main`**
+- **v0.4 Visual Knowledge local acceptance: PASS on the feature candidate**
 - **Private local Basic MVP: PASS through human review, promotion, and candidate-specific MRMIC verification**
 - **Strict Real generative visual MVP: PARTIAL**
 
@@ -61,6 +62,18 @@ The initial pre-MVP engineering sequence has been executed:
 
 ## Current implementation
 
+- v0.4 SEDB-Visual: typed source/reference/concept/style/preference/evaluation/failure/
+  Provider/workflow/relation/feature records with a globally replayable append-only
+  project ledger; AssetStore remains binary authority.
+- Rebuildable Style Atlas: reference cards, human project favorites, multiple negative
+  references, active concepts, exact evaluation summaries, lexical retrieval, explicit
+  feature-vector similarity, and extractor-isolated clustering.
+- Rights-aware RetrievalContext: every query binds permitted rights classes, knowledge
+  revision, Atlas source digest, selected record IDs, scores and reasons; private or
+  unknown references cannot silently widen Provider privacy.
+- Completed-session knowledge loop: accepted v0.3 sessions ingest atomically and
+  idempotently, then a new AADS `ConstraintPacket/v2` and `ProjectContextSnapshot/v2`
+  bind retained retrieval before planning.
 - v0.3 AADS/RABCL: human visual intent compiles into explicit multidimensional
   constraints, an exact active Operator Plan, and a bounded workflow with sequential,
   evaluation, fallback, repair-loop, human-gate, promotion, and stop semantics.
@@ -94,7 +107,7 @@ The initial pre-MVP engineering sequence has been executed:
 - Dynamic Operator Registry Kernel: data-loaded axes, locks, families and compiler rules; immutable version digests; REPLACE-safe append-only SQLite evidence; human-gated activation; provider-neutral semantic plans; revision-guarded exact provider receipts; store-issued runtime evidence tokens; PREPARED/COMPLETED/FAILED experience events; and a real registry-bound Pillow resize green control.
 - VUSD counterfactual evidence kernel: immutable pre-generation predictions and later observations; exact pack/axis/lock/minimal-closure validation; declared non-vacuous closure participation; explicit collateral deltas; derived residual comparison; and candidate-only operator proposals that cannot activate or promote themselves.
 - Same-Series Calibration Evidence Kernel: immutable versioned dimension profiles; explicit legacy-v1 adaptation; data-defined additional dimensions; exact same-character and cross-character observations; repeated human preference rounds with retained disagreement; metric-limitation findings; terminal `PROPOSED` threshold candidates; and non-authorizing evidence summaries.
-- `main` validation snapshot: 196 tests, 195 pass, 0 fail, 1 explicit
+- Feature-candidate validation snapshot: 211 tests, 210 pass, 0 fail, 1 explicit
   opt-in live-MRMIC skip; `npm audit` reports zero known vulnerabilities.
 - Private source/reference and generated candidate image bytes remain Git-ignored and are not distributed by this repository.
 
@@ -110,15 +123,20 @@ acceptance/non-claim record is in `docs/mvp/V02_WORKBENCH_CORE_ACCEPTANCE_v0.1.m
 The v0.3 completion contract and evidence are in
 `docs/superpowers/specs/2026-09-11-v03-visual-intelligence-global-completion.md` and
 `docs/mvp/V03_VISUAL_INTELLIGENCE_ACCEPTANCE_v0.1.md`.
+The v0.4 completion contract and evidence are in
+`docs/superpowers/specs/2026-09-12-v04-visual-knowledge-global-completion.md` and
+`docs/mvp/V04_VISUAL_KNOWLEDGE_ACCEPTANCE_v0.1.md`.
 
 ## Next real-MVP gates
 
-1. Implement the bounded v0.4 SEDB-Visual / Style Atlas knowledge substrate so AADS can retrieve
-   accepted references, rejected patterns, Provider evidence and project preferences.
-2. Keep future external AI workers behind Project Context Home; no worker becomes
+1. Review and integrate the exact v0.4 feature candidate without turning project-local
+   preference or observed correlation into universal aesthetic/causal truth.
+2. Begin the bounded v0.5 human product surface: intent, reference board, canvas,
+   candidate comparison, history, and approve/reject over the existing runtime.
+3. Keep future external AI workers behind Project Context Home; no worker becomes
    canonical project, evaluation, promotion, merge, release, or deployment authority.
-3. Keep Repair A as the private experimental current version; any further hand-only refinement must branch again and pass the same evaluation/human-review gate.
-4. Replace the private game-research source pack with assets carrying sufficient rights evidence before claiming strict Real MVP PASS or public asset distribution.
+4. Keep Repair A as the private experimental current version; any further hand-only refinement must branch again and pass the same evaluation/human-review gate.
+5. Replace the private game-research source pack with assets carrying sufficient rights evidence before claiming strict Real MVP PASS or public asset distribution.
 
 ## License
 

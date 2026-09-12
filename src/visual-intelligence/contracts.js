@@ -65,7 +65,7 @@ const sessionEventTypes = Object.freeze([
   'SESSION_FAILED',
 ]);
 const contextSections = Object.freeze([
-  'GLOSSARY', 'OPERATORS', 'DOCUMENTS', 'SESSIONS', 'EVIDENCE', 'AUTHORITIES',
+  'GLOSSARY', 'OPERATORS', 'DOCUMENTS', 'SESSIONS', 'EVIDENCE', 'AUTHORITIES', 'RETRIEVAL',
 ]);
 const absolutePath = /(?:^|[\s"'(])(?:[A-Za-z]:[\\/]|\\\\|\/(?:home|users|var|tmp|opt)\/)/i;
 const secret = /(?:BEGIN (?:RSA |OPENSSH )?PRIVATE KEY|(?<![A-Za-z0-9])sk-[A-Za-z0-9_-]{20,})/i;
@@ -206,12 +206,16 @@ export function validateVisualIntent(value) {
 }
 
 export function validateConstraintPacket(value) {
-  if (!exact(value, [
+  const fields = [
     'schema', 'packetId', 'intentId', 'projectId', 'documentId', 'taskType',
     'constraints', 'referenceDirections', 'providerPolicy', 'evaluationPolicy',
     'requiresHumanClarification', 'compiler', 'compiledAt',
-  ])) return result('aads_constraint_packet_invalid');
-  if (value.schema !== 'eve-atelier-constraint-packet/v1'
+  ];
+  const v2 = value?.schema === 'eve-atelier-constraint-packet/v2';
+  if (!exact(value, v2 ? [...fields, 'retrievalContextRefs'] : fields)) {
+    return result('aads_constraint_packet_invalid');
+  }
+  if (!['eve-atelier-constraint-packet/v1', 'eve-atelier-constraint-packet/v2'].includes(value.schema)
       || !string(value.packetId)
       || !string(value.intentId)
       || !string(value.projectId)
@@ -238,6 +242,9 @@ export function validateConstraintPacket(value) {
       || !string(value.compiler.id)
       || !string(value.compiler.version)
       || !isCanonicalInstant(value.compiledAt)) return result('aads_constraint_packet_invalid');
+  if (v2 && !strings(value.retrievalContextRefs)) {
+    return result('aads_constraint_packet_retrieval_refs_invalid');
+  }
   const constraintIds = new Set();
   for (const constraint of value.constraints) {
     if (!exact(constraint, [
@@ -633,12 +640,17 @@ export function validateAadsSession(value) {
 }
 
 export function validateContextSnapshot(value) {
-  if (!exact(value, [
+  const fields = [
     'schema', 'contextSnapshotId', 'projectId', 'contextVersion', 'glossary',
     'operatorPackRefs', 'artDocuments', 'activeSessionRefs', 'evidenceRefs',
     'sourceAuthorities', 'createdAt',
-  ])) return result('aads_context_snapshot_invalid');
-  if (value.schema !== 'eve-atelier-project-context-snapshot/v1'
+  ];
+  const v2 = value?.schema === 'eve-atelier-project-context-snapshot/v2';
+  if (!exact(value, v2 ? [...fields, 'retrievalContextRefs'] : fields)) {
+    return result('aads_context_snapshot_invalid');
+  }
+  if (!['eve-atelier-project-context-snapshot/v1', 'eve-atelier-project-context-snapshot/v2']
+    .includes(value.schema)
       || !string(value.contextSnapshotId)
       || !string(value.projectId)
       || !integer(value.contextVersion, { min: 1 })
@@ -657,6 +669,12 @@ export function validateContextSnapshot(value) {
         && !string(value.sourceAuthorities.semanticStore))
       || !isCanonicalInstant(value.createdAt)
       || !safeValue(value)) return result('aads_context_snapshot_invalid');
+  if (v2 && !strings(value.retrievalContextRefs)) {
+    return result('aads_context_retrieval_refs_invalid');
+  }
+  if (v2 && value.sourceAuthorities.semanticStore === null) {
+    return result('aads_context_semantic_store_required');
+  }
   const terms = new Set();
   for (const item of value.glossary) {
     if (!exact(item, ['term', 'meaning'])

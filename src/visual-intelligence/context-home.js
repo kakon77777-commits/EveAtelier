@@ -15,6 +15,7 @@ const sectionReaders = Object.freeze({
   SESSIONS: value => value.activeSessionRefs,
   EVIDENCE: value => value.evidenceRefs,
   AUTHORITIES: value => [value.sourceAuthorities],
+  RETRIEVAL: value => value.retrievalContextRefs ?? [],
 });
 
 export function buildProjectContextSnapshot(value) {

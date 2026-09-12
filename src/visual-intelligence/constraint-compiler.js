@@ -11,7 +11,7 @@ const compiler = Object.freeze({ id: 'aads-constraint-compiler:bounded-v1', vers
 function detectedTask(intent) {
   if (intent.taskTypeHint !== 'UNKNOWN') return intent.taskTypeHint;
   const text = intent.text;
-  if (/(?:背景.{0,8}(?:去掉|移除|透明)|去背|remove\s+(?:the\s+)?background|transparent\s+background)/iu.test(text)) {
+  if (/(?:背景.{0,8}(?:去掉|移除|透明)|(?:去掉|移除)背景|去背|remove\s+(?:the\s+)?background|transparent\s+background)/iu.test(text)) {
     return 'BACKGROUND_REMOVAL';
   }
   if (/(?:打光|補光|光線|冷光|暖光|relight|lighting)/iu.test(text)) return 'RELIGHT';
@@ -77,6 +77,7 @@ export function compileVisualIntent(rawIntent, {
   maxCostUnits = 0,
   maxLatencyMs = 60_000,
   humanReview = true,
+  retrievalContextRefs = [],
 } = {}) {
   const intent = normalizeVisualValue(rawIntent, 'aads_visual_intent_json_value_invalid');
   const intentValidation = validateVisualIntent(intent);
@@ -139,7 +140,9 @@ export function compileVisualIntent(rawIntent, {
     requiredDimensions.push('HUMAN_REVIEW');
   }
   const packet = {
-    schema: 'eve-atelier-constraint-packet/v1',
+    schema: retrievalContextRefs.length > 0
+      ? 'eve-atelier-constraint-packet/v2'
+      : 'eve-atelier-constraint-packet/v1',
     packetId,
     intentId: intent.intentId,
     projectId: intent.projectId,
@@ -166,6 +169,14 @@ export function compileVisualIntent(rawIntent, {
     compiler: cloneVisualValue(compiler),
     compiledAt,
   };
+  if (retrievalContextRefs.length > 0) {
+    packet.retrievalContextRefs = [...retrievalContextRefs];
+  }
+  if (!Array.isArray(retrievalContextRefs)
+      || new Set(retrievalContextRefs).size !== retrievalContextRefs.length
+      || retrievalContextRefs.some(item => typeof item !== 'string' || item.length === 0)) {
+    throw new TypeError('aads_constraint_retrieval_refs_invalid');
+  }
   const validation = validateConstraintPacket(packet);
   if (!validation.ok) throw new Error(validation.reason);
   return packet;

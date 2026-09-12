@@ -215,8 +215,15 @@ export class VisualIntelligenceStore {
   #artDocumentStore;
   #operatorStore;
   #assetStore;
+  #visualKnowledgeStore;
 
-  constructor({ path = ':memory:', artDocumentStore, operatorStore, assetStore }) {
+  constructor({
+    path = ':memory:',
+    artDocumentStore,
+    operatorStore,
+    assetStore,
+    visualKnowledgeStore = null,
+  }) {
     this.#artDocumentStore = requiredStore(
       artDocumentStore,
       ['getDocumentSnapshot', 'getVersionGraphSeal'],
@@ -232,6 +239,13 @@ export class VisualIntelligenceStore {
       ['verifyAsset'],
       'aads_asset_store_required',
     );
+    this.#visualKnowledgeStore = visualKnowledgeStore === null
+      ? null
+      : requiredStore(
+          visualKnowledgeStore,
+          ['getRetrievalContext'],
+          'aads_visual_knowledge_store_invalid',
+        );
     this.#database = new DatabaseSync(path);
     this.#database.exec('PRAGMA foreign_keys = ON; PRAGMA recursive_triggers = ON;');
     this.#database.exec(`
@@ -328,6 +342,19 @@ export class VisualIntelligenceStore {
     `);
   }
 
+  bindVisualKnowledgeStore(store) {
+    const resolved = requiredStore(
+      store,
+      ['getRetrievalContext'],
+      'aads_visual_knowledge_store_invalid',
+    );
+    if (this.#visualKnowledgeStore !== null && this.#visualKnowledgeStore !== resolved) {
+      throw new Error('aads_visual_knowledge_store_already_bound');
+    }
+    this.#visualKnowledgeStore = resolved;
+    return true;
+  }
+
   #transaction(action) {
     this.#database.exec('BEGIN IMMEDIATE');
     try {
@@ -407,6 +434,28 @@ export class VisualIntelligenceStore {
     })).sort();
     if (canonicalJson(intendedDirections) !== canonicalJson(compiledDirections)) {
       throw new Error('aads_constraint_reference_direction_mismatch');
+    }
+    const localOnlyReference = intent.hardConstraints.some(item => (
+      item.dimension === 'PRIVACY' && item.requirement.startsWith('LOCAL_ONLY_REFERENCE:')
+    ));
+    if (localOnlyReference
+        && (value.providerPolicy.allowedPrivacy.length !== 1
+          || value.providerPolicy.allowedPrivacy[0] !== 'LOCAL')) {
+      throw new Error('aads_private_reference_requires_local_provider');
+    }
+    if (value.schema === 'eve-atelier-constraint-packet/v2') {
+      const retrievals = this.#assertRetrievalContexts(value.retrievalContextRefs, value.projectId);
+      for (const retrieval of retrievals) {
+        if (retrieval.query.allowedRightsClasses.includes('UNKNOWN')
+            && (value.providerPolicy.allowedPrivacy.length !== 1
+              || value.providerPolicy.allowedPrivacy[0] !== 'LOCAL')) {
+          throw new Error('aads_unknown_rights_requires_local_provider');
+        }
+        if (retrieval.query.allowedRightsClasses.includes('PRIVATE_RESEARCH')
+            && value.providerPolicy.allowedPrivacy.includes('REMOTE_PUBLIC')) {
+          throw new Error('aads_private_retrieval_remote_public_forbidden');
+        }
+      }
     }
     return this.#append({
       table: 'vi_constraint_packets', idColumn: 'packet_id', id: value.packetId,
@@ -545,6 +594,9 @@ export class VisualIntelligenceStore {
       }
     }
     for (const ref of value.operatorPackRefs) this.#operatorStore.getPack(ref);
+    if (value.schema === 'eve-atelier-project-context-snapshot/v2') {
+      this.#assertRetrievalContexts(value.retrievalContextRefs, value.projectId);
+    }
     return this.#append({
       table: 'vi_context_snapshots', idColumn: 'context_snapshot_id',
       id: value.contextSnapshotId, record: value,
@@ -662,6 +714,11 @@ export class VisualIntelligenceStore {
           || !context.activeSessionRefs.includes(value.sessionId)
           || packet.taskType !== value.taskType) {
         throw new Error('aads_session_reference_mismatch');
+      }
+      const packetRetrieval = packet.retrievalContextRefs ?? [];
+      const contextRetrieval = context.retrievalContextRefs ?? [];
+      if (canonicalJson(packetRetrieval) !== canonicalJson(contextRetrieval)) {
+        throw new Error('aads_session_retrieval_context_mismatch');
       }
       const art = this.#artDocumentStore.getDocumentSnapshot(value.documentId);
       const initial = value.initialArtState;
@@ -988,6 +1045,21 @@ export class VisualIntelligenceStore {
 
   close() {
     this.#database.close();
+  }
+
+  #assertRetrievalContexts(ids, projectId) {
+    if (this.#visualKnowledgeStore === null) {
+      throw new Error('aads_visual_knowledge_store_required');
+    }
+    const contexts = [];
+    for (const id of ids) {
+      const context = this.#visualKnowledgeStore.getRetrievalContext(id);
+      if (context.projectId !== projectId) {
+        throw new Error('aads_retrieval_context_project_mismatch');
+      }
+      contexts.push(context);
+    }
+    return contexts;
   }
 }
 
