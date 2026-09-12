@@ -6,17 +6,16 @@ The project is designed around a simple premise: AI should work with explicit vi
 
 ## Status
 
-**v0.3 Visual Intelligence integration candidate over the deployed v0.2 core.** The
-feature branch adds a persistent AADS session/controller, provider-neutral constraint
+**v0.3 Visual Intelligence on `main`.** The repository now includes a persistent AADS
+session/controller, provider-neutral constraint
 compiler and Operator Plan, bounded RABCL workflow runtime, and versioned Project
-Context Home. `main` remains the published v0.2 Workbench Core until a separate v0.3
-integration decision.
+Context Home over the v0.2 Workbench Core.
 
 Current acceptance state:
 
 - **Architecture / Workbench acceptance: PASS**
 - **v0.2 Workbench Core local acceptance: PASS and integrated on `main`**
-- **v0.3 Visual Intelligence local acceptance: PASS on the feature candidate**
+- **v0.3 Visual Intelligence local acceptance: PASS and integrated on `main`**
 - **Private local Basic MVP: PASS through human review, promotion, and candidate-specific MRMIC verification**
 - **Strict Real generative visual MVP: PARTIAL**
 
@@ -95,7 +94,7 @@ The initial pre-MVP engineering sequence has been executed:
 - Dynamic Operator Registry Kernel: data-loaded axes, locks, families and compiler rules; immutable version digests; REPLACE-safe append-only SQLite evidence; human-gated activation; provider-neutral semantic plans; revision-guarded exact provider receipts; store-issued runtime evidence tokens; PREPARED/COMPLETED/FAILED experience events; and a real registry-bound Pillow resize green control.
 - VUSD counterfactual evidence kernel: immutable pre-generation predictions and later observations; exact pack/axis/lock/minimal-closure validation; declared non-vacuous closure participation; explicit collateral deltas; derived residual comparison; and candidate-only operator proposals that cannot activate or promote themselves.
 - Same-Series Calibration Evidence Kernel: immutable versioned dimension profiles; explicit legacy-v1 adaptation; data-defined additional dimensions; exact same-character and cross-character observations; repeated human preference rounds with retained disagreement; metric-limitation findings; terminal `PROPOSED` threshold candidates; and non-authorizing evidence summaries.
-- Feature-candidate validation snapshot: 196 tests, 195 pass, 0 fail, 1 explicit
+- `main` validation snapshot: 196 tests, 195 pass, 0 fail, 1 explicit
   opt-in live-MRMIC skip; `npm audit` reports zero known vulnerabilities.
 - Private source/reference and generated candidate image bytes remain Git-ignored and are not distributed by this repository.
 
@@ -114,14 +113,12 @@ The v0.3 completion contract and evidence are in
 
 ## Next real-MVP gates
 
-1. Review and integrate the exact v0.3 feature candidate without expanding it into
-   open-ended language understanding or a Provider-specific workflow graph.
-2. Begin the v0.4 SEDB-Visual / Style Atlas knowledge substrate so AADS can retrieve
+1. Implement the bounded v0.4 SEDB-Visual / Style Atlas knowledge substrate so AADS can retrieve
    accepted references, rejected patterns, Provider evidence and project preferences.
-3. Keep future external AI workers behind Project Context Home; no worker becomes
+2. Keep future external AI workers behind Project Context Home; no worker becomes
    canonical project, evaluation, promotion, merge, release, or deployment authority.
-4. Keep Repair A as the private experimental current version; any further hand-only refinement must branch again and pass the same evaluation/human-review gate.
-5. Replace the private game-research source pack with assets carrying sufficient rights evidence before claiming strict Real MVP PASS or public asset distribution.
+3. Keep Repair A as the private experimental current version; any further hand-only refinement must branch again and pass the same evaluation/human-review gate.
+4. Replace the private game-research source pack with assets carrying sufficient rights evidence before claiming strict Real MVP PASS or public asset distribution.
 
 ## License
 

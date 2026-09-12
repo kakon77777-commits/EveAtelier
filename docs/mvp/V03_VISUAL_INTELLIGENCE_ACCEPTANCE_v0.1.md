@@ -4,7 +4,7 @@ Date: 2026-09-11
 
 Status: `COMMITTED_IMPLEMENTATION_CANDIDATE / LOCAL_ACCEPTANCE`
 
-Branch: `feature/v0.3-visual-intelligence`
+Source branch: `feature/v0.3-visual-intelligence`
 
 Base: `main@85c626456fc7369ee5610ef0247fdf7f9a76330a`
 
@@ -218,3 +218,13 @@ project context, authored code, validated the result, or gained repository autho
 - SEDB-Visual learning, Style Atlas, vector retrieval, external-worker write-back,
   open-ended language understanding and the human UI remain later milestones.
 - Strict rights-clear Real MVP evidence remains a separate gate.
+
+## Integration supersession
+
+The preceding non-claims record the authority state at acceptance time. On 2026-09-12,
+the user separately authorized continuation of the declared v0.3 integration gate.
+Local `main` was fast-forwarded from
+`85c626456fc7369ee5610ef0247fdf7f9a76330a` to the exact accepted source commit
+`3a62eeba8e85d98b87e79defb4488f533152b79c`. The user's untracked research documents
+and backup archive remained outside the merge. GitHub `main` publication is verified
+separately after the integration documentation commit is pushed.
