@@ -2,9 +2,9 @@
 
 Date: 2026-09-12
 
-Status: `COMMITTED_IMPLEMENTATION_CANDIDATE / LOCAL_ACCEPTANCE`
+Status: `PROMOTED / INTEGRATED_ON_MAIN / LOCAL_ACCEPTANCE`
 
-Branch: `feature/v0.4-visual-knowledge`
+Source branch: `feature/v0.4-visual-knowledge`
 
 Base: `main@182f02cdda25729b6466ece1d75d791309469d8d`
 
@@ -14,9 +14,10 @@ Canonical roadmap digest:
 DB97375516B42DEBCA5949F974D8D91D20B31F39A76F0CEB262F1F83A64EBF10
 ```
 
-This report accepts the finite v0.4 SEDB-Visual / Style Atlas candidate. It does not
-merge or deploy the branch, store private image bytes, run an external AI worker, or
-claim universal aesthetics, autonomous theory evolution, or causal proof.
+This report accepts the finite v0.4 SEDB-Visual / Style Atlas runtime. The integration
+record below supersedes its earlier candidate-only merge state. It does not deploy a
+hosted runtime, store private image bytes, run an external AI worker, or claim universal
+aesthetics, autonomous theory evolution, or causal proof.
 
 ## Accepted product loop
 
@@ -234,8 +235,8 @@ npm audit --json
   total vulnerabilities = 0
 ```
 
-These counts were reproduced from a detached clean worktree after `npm ci`. They
-accept the committed v0.4 feature candidate only; they do not claim main integration.
+These counts were reproduced from a detached clean worktree after `npm ci` at the exact
+promoted source commit. The later integration-record commit changes documentation only.
 
 ## Promotion-review remediation
 
@@ -244,8 +245,9 @@ concrete evidence-fidelity paths: stale-Atlas retrieval creation, observer-only
 relations entering observer-free discovery, and implicit review-to-preference dimension
 fabrication. The repaired successor adds falsifying controls for all three. It also
 preserves complete role influence/scope bindings in Style Atlas v2 and requires explicit
-human provenance for ingested reference roles. Fresh independent review remains a
-separate prerequisite for main integration.
+human provenance for ingested reference roles. Fresh independent re-review of the
+successor returned `CONCUR` with behavioral, structural and discriminative closure and
+no remaining in-scope blocker.
 
 ## AI participation
 
@@ -257,7 +259,7 @@ were not called and did not receive Project Context Home data.
 
 ## Non-claims
 
-- v0.4 is not merged or deployed by this report.
+- v0.4 main integration does not claim a hosted/runtime deployment.
 - No image bytes are stored in SEDB-Visual.
 - No vector database, embedding service, external model or network retrieval is used.
 - Similarity, clustering and ranking are derived discovery aids, not truth.
@@ -267,3 +269,16 @@ were not called and did not receive Project Context Home data.
 - Project preference is not universal aesthetics.
 - Retrieval does not yet rewrite constraints or choose Providers automatically.
 - Generation-seed integration, v0.5 UI and strict rights-clear Real MVP remain separate.
+
+## Integration supersession
+
+On 2026-09-13 the user continued the previously declared v0.4 review/promotion and main
+integration gate. The single governing Twin first returned `CHALLENGE`, the three
+evidence-fidelity defects were repaired with RED/green controls, and fresh review of
+exact source commit `22db21a66678b6804439c904247b85dfaab6aee6` returned `CONCUR`.
+
+Local `main` was then fast-forwarded from
+`182f02cdda25729b6466ece1d75d791309469d8d` to that exact promoted source commit. The
+206 untracked files from the research intake and backup archive had zero path overlap
+with the 24 integrated paths and were not staged or changed. GitHub publication is
+verified separately after this integration record is committed and pushed.

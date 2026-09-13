@@ -2,7 +2,7 @@
 
 Date: 2026-09-12
 
-Status: `ARCHITECTURE_BASELINE / COMMITTED_IMPLEMENTATION_CANDIDATE / LOCAL_ACCEPTANCE`
+Status: `ARCHITECTURE_BASELINE / PROMOTED / INTEGRATED_ON_MAIN / LOCAL_ACCEPTANCE`
 
 Baseline: `main@182f02cdda25729b6466ece1d75d791309469d8d`
 
@@ -364,7 +364,7 @@ and non-claim evidence is recorded in:
 docs/mvp/V04_VISUAL_KNOWLEDGE_ACCEPTANCE_v0.1.md
 ```
 
-Final detached clean-worktree evidence on 2026-09-12:
+Final detached clean-worktree evidence on 2026-09-13:
 
 ```text
 npm ci: completed; 0 vulnerabilities

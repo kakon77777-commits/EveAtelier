@@ -6,17 +6,17 @@ The project is designed around a simple premise: AI should work with explicit vi
 
 ## Status
 
-**v0.4 Visual Knowledge integration candidate over the deployed v0.3 runtime.** The
-feature branch adds append-only SEDB-Visual semantic/evidence records, a deterministic
-rebuildable Style Atlas, completed-session ingestion, rights-aware retrieval, explicit
-reference-role binding, and digest-bound AADS retrieval context.
+**v0.4 Visual Knowledge is integrated on `main`.** The runtime now includes append-only
+SEDB-Visual semantic/evidence records, a deterministic rebuildable Style Atlas,
+completed-session ingestion, rights-aware retrieval, explicit reference-role binding,
+and digest-bound AADS retrieval context.
 
 Current acceptance state:
 
 - **Architecture / Workbench acceptance: PASS**
 - **v0.2 Workbench Core local acceptance: PASS and integrated on `main`**
 - **v0.3 Visual Intelligence local acceptance: PASS and integrated on `main`**
-- **v0.4 Visual Knowledge local acceptance: PASS on the feature candidate**
+- **v0.4 Visual Knowledge local acceptance: PASS and integrated on `main`**
 - **Private local Basic MVP: PASS through human review, promotion, and candidate-specific MRMIC verification**
 - **Strict Real generative visual MVP: PARTIAL**
 
@@ -107,7 +107,7 @@ The initial pre-MVP engineering sequence has been executed:
 - Dynamic Operator Registry Kernel: data-loaded axes, locks, families and compiler rules; immutable version digests; REPLACE-safe append-only SQLite evidence; human-gated activation; provider-neutral semantic plans; revision-guarded exact provider receipts; store-issued runtime evidence tokens; PREPARED/COMPLETED/FAILED experience events; and a real registry-bound Pillow resize green control.
 - VUSD counterfactual evidence kernel: immutable pre-generation predictions and later observations; exact pack/axis/lock/minimal-closure validation; declared non-vacuous closure participation; explicit collateral deltas; derived residual comparison; and candidate-only operator proposals that cannot activate or promote themselves.
 - Same-Series Calibration Evidence Kernel: immutable versioned dimension profiles; explicit legacy-v1 adaptation; data-defined additional dimensions; exact same-character and cross-character observations; repeated human preference rounds with retained disagreement; metric-limitation findings; terminal `PROPOSED` threshold candidates; and non-authorizing evidence summaries.
-- Feature-candidate validation snapshot: 214 tests, 213 pass, 0 fail, 1 explicit
+- Integrated v0.4 validation snapshot: 214 tests, 213 pass, 0 fail, 1 explicit
   opt-in live-MRMIC skip; `npm audit` reports zero known vulnerabilities.
 - Private source/reference and generated candidate image bytes remain Git-ignored and are not distributed by this repository.
 
@@ -129,14 +129,12 @@ The v0.4 completion contract and evidence are in
 
 ## Next real-MVP gates
 
-1. Review and integrate the exact v0.4 feature candidate without turning project-local
-   preference or observed correlation into universal aesthetic/causal truth.
-2. Begin the bounded v0.5 human product surface: intent, reference board, canvas,
+1. Begin the bounded v0.5 human product surface: intent, reference board, canvas,
    candidate comparison, history, and approve/reject over the existing runtime.
-3. Keep future external AI workers behind Project Context Home; no worker becomes
+2. Keep future external AI workers behind Project Context Home; no worker becomes
    canonical project, evaluation, promotion, merge, release, or deployment authority.
-4. Keep Repair A as the private experimental current version; any further hand-only refinement must branch again and pass the same evaluation/human-review gate.
-5. Replace the private game-research source pack with assets carrying sufficient rights evidence before claiming strict Real MVP PASS or public asset distribution.
+3. Keep Repair A as the private experimental current version; any further hand-only refinement must branch again and pass the same evaluation/human-review gate.
+4. Replace the private game-research source pack with assets carrying sufficient rights evidence before claiming strict Real MVP PASS or public asset distribution.
 
 ## License
 
