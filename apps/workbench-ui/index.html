@@ -1,0 +1,114 @@
+<!doctype html>
+<html lang="zh-Hant">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="color-scheme" content="dark">
+    <title>EveAtelier — Human Workbench</title>
+    <link rel="stylesheet" href="/styles.css">
+  </head>
+  <body>
+    <header class="topbar">
+      <a class="brand" href="/" aria-label="EveAtelier 首頁">
+        <span class="brand-mark" aria-hidden="true">E</span>
+        <span><strong>EveAtelier</strong><small>Human Workbench · v0.5</small></span>
+      </a>
+      <div class="runtime-state">
+        <span class="pulse" aria-hidden="true"></span>
+        <span id="runtime-label">連接本地工作台…</span>
+      </div>
+    </header>
+
+    <main class="studio-shell">
+      <aside class="rail left-rail">
+        <section class="panel intent-panel" data-surface="intent" aria-labelledby="intent-title">
+          <div class="panel-heading">
+            <div><span class="eyebrow">01 · DIRECT</span><h1 id="intent-title">創作意圖</h1></div>
+            <span class="status-chip">Human</span>
+          </div>
+          <form id="intent-form">
+            <label for="intent-text">描述你要改變什麼</label>
+            <textarea id="intent-text" rows="5" required>把背景去掉，邊緣不要有白邊。</textarea>
+            <label for="task-hint">任務提示</label>
+            <select id="task-hint">
+              <option value="UNKNOWN">讓 AADS 判斷</option>
+              <option value="BACKGROUND_REMOVAL">去除背景</option>
+              <option value="RELIGHT">重新打光</option>
+              <option value="RECOLOR">重新配色</option>
+              <option value="RESIZE">調整尺寸</option>
+              <option value="COMPOSITE">圖層合成</option>
+            </select>
+            <button class="primary-action" type="submit">
+              <span>編譯並執行</span><span aria-hidden="true">↗</span>
+            </button>
+          </form>
+        </section>
+
+        <section class="panel reference-panel" data-surface="reference-board" aria-labelledby="reference-title">
+          <div class="panel-heading">
+            <div><span class="eyebrow">02 · BIND</span><h2 id="reference-title">Reference Board</h2></div>
+            <span id="reference-count" class="count">0</span>
+          </div>
+          <p class="panel-note">選的是「這張圖負責什麼」，不是猜 prompt 關鍵字。</p>
+          <div id="reference-board" class="reference-grid"></div>
+        </section>
+      </aside>
+
+      <section class="stage-column">
+        <section class="panel canvas-panel" data-surface="canvas" aria-labelledby="canvas-title">
+          <div class="panel-heading stage-heading">
+            <div><span class="eyebrow">03 · SEE</span><h2 id="canvas-title">Canvas</h2></div>
+            <div id="canvas-meta" class="canvas-meta"></div>
+          </div>
+          <div class="canvas-well">
+            <div class="canvas-grid" aria-hidden="true"></div>
+            <img id="canvas-image" alt="目前版本畫布">
+            <div id="canvas-empty" class="empty-state">尚未載入畫布</div>
+          </div>
+          <div class="canvas-footer">
+            <span id="canvas-version">—</span>
+            <span id="knowledge-revision">Knowledge r—</span>
+          </div>
+        </section>
+
+        <section class="panel history-panel" data-surface="history" aria-labelledby="history-title">
+          <div class="panel-heading">
+            <div><span class="eyebrow">05 · TRACE</span><h2 id="history-title">History</h2></div>
+            <button id="refresh-button" class="ghost-action" type="button">重新整理</button>
+          </div>
+          <ol id="history-list" class="timeline"></ol>
+        </section>
+      </section>
+
+      <aside class="rail right-rail">
+        <section class="panel compare-panel" data-surface="candidate-compare" aria-labelledby="compare-title">
+          <div class="panel-heading">
+            <div><span class="eyebrow">04 · COMPARE</span><h2 id="compare-title">Candidates</h2></div>
+            <span id="candidate-count" class="count">0</span>
+          </div>
+          <div id="candidate-list" class="candidate-list"></div>
+        </section>
+
+        <section class="panel review-panel" data-surface="human-review" aria-labelledby="review-title">
+          <div class="panel-heading">
+            <div><span class="eyebrow">06 · JUDGE</span><h2 id="review-title">Approve / Reject</h2></div>
+            <span id="gate-state" class="status-chip quiet">No gate</span>
+          </div>
+          <div id="review-empty" class="empty-state compact">工作流抵達 human gate 後，決定權會出現在這裡。</div>
+          <form id="review-form" hidden>
+            <div id="review-target" class="review-target"></div>
+            <label for="review-reason">判斷理由</label>
+            <textarea id="review-reason" rows="4" required placeholder="保留你的藝術判斷與警告…"></textarea>
+            <div class="review-actions">
+              <button class="reject-action" type="submit" value="REJECT">Reject</button>
+              <button class="approve-action" type="submit" value="APPROVE">Approve</button>
+            </div>
+          </form>
+        </section>
+      </aside>
+    </main>
+
+    <div id="status-message" class="toast" role="status" aria-live="polite"></div>
+    <script type="module" src="/app.js"></script>
+  </body>
+</html>

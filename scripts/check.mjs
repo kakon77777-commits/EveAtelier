@@ -20,7 +20,7 @@ function run(command, args) {
   });
 }
 
-const roots = ['src', 'scripts'].map(path => resolve(path));
+const roots = ['src', 'scripts', 'apps'].map(path => resolve(path));
 const files = roots.flatMap(sourceFiles);
 
 for (const file of files) {

@@ -6,10 +6,10 @@ The project is designed around a simple premise: AI should work with explicit vi
 
 ## Status
 
-**v0.4 Visual Knowledge is integrated on `main`.** The runtime now includes append-only
-SEDB-Visual semantic/evidence records, a deterministic rebuildable Style Atlas,
-completed-session ingestion, rights-aware retrieval, explicit reference-role binding,
-and digest-bound AADS retrieval context.
+**v0.5 Human Product Surface is a local integration candidate over the deployed v0.4
+runtime.** The new loopback browser workbench exposes Intent, Reference Board, Canvas,
+Candidate Compare, History and Approve/Reject without transferring canonical authority
+out of AADS, ArtDocumentStore, SEDB-Visual or AssetStore.
 
 Current acceptance state:
 
@@ -17,6 +17,7 @@ Current acceptance state:
 - **v0.2 Workbench Core local acceptance: PASS and integrated on `main`**
 - **v0.3 Visual Intelligence local acceptance: PASS and integrated on `main`**
 - **v0.4 Visual Knowledge local acceptance: PASS and integrated on `main`**
+- **v0.5 Human Product Surface local acceptance: PASS on the feature candidate**
 - **Private local Basic MVP: PASS through human review, promotion, and candidate-specific MRMIC verification**
 - **Strict Real generative visual MVP: PARTIAL**
 
@@ -62,6 +63,13 @@ The initial pre-MVP engineering sequence has been executed:
 
 ## Current implementation
 
+- v0.5 Human Product Surface: a dependency-free local browser UI over a typed
+  `HumanWorkbenchSurface` adapter and loopback-only Node HTTP host; client input cannot
+  select actor, Provider, model, workflow, budget, authority or promotion.
+- Six connected human surfaces: intent, explicit reference-role board, exact current
+  canvas, evaluated-candidate comparison, durable history, and human-gated
+  approve/reject. A real browser verified both promotion and rejection against the
+  deterministic synthetic demo runtime.
 - v0.4 SEDB-Visual: typed source/reference/concept/style/preference/evaluation/failure/
   Provider/workflow/relation/feature records with a globally replayable append-only
   project ledger; AssetStore remains binary authority.
@@ -107,7 +115,7 @@ The initial pre-MVP engineering sequence has been executed:
 - Dynamic Operator Registry Kernel: data-loaded axes, locks, families and compiler rules; immutable version digests; REPLACE-safe append-only SQLite evidence; human-gated activation; provider-neutral semantic plans; revision-guarded exact provider receipts; store-issued runtime evidence tokens; PREPARED/COMPLETED/FAILED experience events; and a real registry-bound Pillow resize green control.
 - VUSD counterfactual evidence kernel: immutable pre-generation predictions and later observations; exact pack/axis/lock/minimal-closure validation; declared non-vacuous closure participation; explicit collateral deltas; derived residual comparison; and candidate-only operator proposals that cannot activate or promote themselves.
 - Same-Series Calibration Evidence Kernel: immutable versioned dimension profiles; explicit legacy-v1 adaptation; data-defined additional dimensions; exact same-character and cross-character observations; repeated human preference rounds with retained disagreement; metric-limitation findings; terminal `PROPOSED` threshold candidates; and non-authorizing evidence summaries.
-- Integrated v0.4 validation snapshot: 214 tests, 213 pass, 0 fail, 1 explicit
+- v0.5 feature-candidate validation snapshot: 222 tests, 221 pass, 0 fail, 1 explicit
   opt-in live-MRMIC skip; `npm audit` reports zero known vulnerabilities.
 - Private source/reference and generated candidate image bytes remain Git-ignored and are not distributed by this repository.
 
@@ -126,15 +134,19 @@ The v0.3 completion contract and evidence are in
 The v0.4 completion contract and evidence are in
 `docs/superpowers/specs/2026-09-12-v04-visual-knowledge-global-completion.md` and
 `docs/mvp/V04_VISUAL_KNOWLEDGE_ACCEPTANCE_v0.1.md`.
+The v0.5 completion contract and evidence are in
+`docs/superpowers/specs/2026-09-13-v05-human-product-surface-global-completion.md` and
+`docs/mvp/V05_HUMAN_PRODUCT_SURFACE_ACCEPTANCE_v0.1.md`.
 
 ## Next real-MVP gates
 
-1. Begin the bounded v0.5 human product surface: intent, reference board, canvas,
-   candidate comparison, history, and approve/reject over the existing runtime.
-2. Keep future external AI workers behind Project Context Home; no worker becomes
+1. Review and integrate the exact v0.5 Human Product Surface candidate.
+2. Bind the same product adapter to an explicitly selected persistent project/runtime;
+   keep the synthetic demo distinct from private or production evidence.
+3. Keep future external AI workers behind Project Context Home; no worker becomes
    canonical project, evaluation, promotion, merge, release, or deployment authority.
-3. Keep Repair A as the private experimental current version; any further hand-only refinement must branch again and pass the same evaluation/human-review gate.
-4. Replace the private game-research source pack with assets carrying sufficient rights evidence before claiming strict Real MVP PASS or public asset distribution.
+4. Keep Repair A as the private experimental current version; any further hand-only refinement must branch again and pass the same evaluation/human-review gate.
+5. Replace the private game-research source pack with assets carrying sufficient rights evidence before claiming strict Real MVP PASS or public asset distribution.
 
 ## License
 

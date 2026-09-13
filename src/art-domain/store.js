@@ -761,6 +761,23 @@ export class ArtDocumentStore {
     return this.#getComponent('art_evaluations', 'evaluation_id', id, 'art_evaluation_not_found');
   }
 
+  listEvaluations(documentId, { versionId = null } = {}) {
+    this.getDocument(documentId);
+    if (versionId !== null && (typeof versionId !== 'string' || versionId.length === 0)) {
+      throw new TypeError('art_evaluation_version_filter_invalid');
+    }
+    const rows = versionId === null
+      ? this.#database.prepare(`
+        SELECT record_json FROM art_evaluations
+        WHERE document_id = ? ORDER BY rowid
+      `).all(documentId)
+      : this.#database.prepare(`
+        SELECT record_json FROM art_evaluations
+        WHERE document_id = ? AND version_id = ? ORDER BY rowid
+      `).all(documentId, versionId);
+    return rows.map(row => JSON.parse(row.record_json));
+  }
+
   recordHumanReview(value) {
     value = normalizeArtValue(value, 'art_human_review_json_value_invalid');
     const validation = validateArtHumanReview(value);
@@ -779,6 +796,23 @@ export class ArtDocumentStore {
 
   getHumanReview(id) {
     return this.#getComponent('art_human_reviews', 'review_id', id, 'art_human_review_not_found');
+  }
+
+  listHumanReviews(documentId, { versionId = null } = {}) {
+    this.getDocument(documentId);
+    if (versionId !== null && (typeof versionId !== 'string' || versionId.length === 0)) {
+      throw new TypeError('art_review_version_filter_invalid');
+    }
+    const rows = versionId === null
+      ? this.#database.prepare(`
+        SELECT record_json FROM art_human_reviews
+        WHERE document_id = ? ORDER BY rowid
+      `).all(documentId)
+      : this.#database.prepare(`
+        SELECT record_json FROM art_human_reviews
+        WHERE document_id = ? AND version_id = ? ORDER BY rowid
+      `).all(documentId, versionId);
+    return rows.map(row => JSON.parse(row.record_json));
   }
 
   #getComponent(table, idColumn, id, missing) {
@@ -999,6 +1033,14 @@ export class ArtDocumentStore {
       throw new Error('art_current_event_not_found');
     }
     return { sequence: Number(row.event_sequence), event: JSON.parse(row.record_json) };
+  }
+
+  listCurrentEvents(documentId) {
+    this.getDocument(documentId);
+    return this.#database.prepare(`
+      SELECT record_json FROM art_current_events
+      WHERE document_id = ? ORDER BY event_sequence
+    `).all(documentId).map(row => JSON.parse(row.record_json));
   }
 
   getDocumentSnapshot(documentId) {

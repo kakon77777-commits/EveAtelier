@@ -825,6 +825,29 @@ export class VisualIntelligenceStore {
     return this.#get('vi_sessions', 'session_id', id, 'aads_session_not_found');
   }
 
+  listSessions({ projectId = null, documentId = null } = {}) {
+    if (projectId !== null && (typeof projectId !== 'string' || projectId.length === 0)) {
+      throw new TypeError('aads_session_project_filter_invalid');
+    }
+    if (documentId !== null && (typeof documentId !== 'string' || documentId.length === 0)) {
+      throw new TypeError('aads_session_document_filter_invalid');
+    }
+    const clauses = [];
+    const values = [];
+    if (projectId !== null) {
+      clauses.push('project_id = ?');
+      values.push(projectId);
+    }
+    if (documentId !== null) {
+      clauses.push('document_id = ?');
+      values.push(documentId);
+    }
+    const where = clauses.length === 0 ? '' : `WHERE ${clauses.join(' AND ')}`;
+    return this.#database.prepare(`
+      SELECT record_json FROM vi_sessions ${where} ORDER BY rowid
+    `).all(...values).map(row => JSON.parse(row.record_json));
+  }
+
   appendEvent(raw) {
     const request = normalizeVisualValue(raw, 'aads_session_event_request_json_value_invalid');
     const fields = [
