@@ -186,7 +186,7 @@ revision. Ledger history is never erased by deprecation.
 
 ## 9. Style Atlas
 
-Style Atlas is rebuilt from a bound knowledge revision and source-record digest. It
+Style Atlas v2 is rebuilt from a bound knowledge revision and source-record digest. It
 provides:
 
 - reference cards;
@@ -233,6 +233,11 @@ worker section. It does not inline private bytes or silently copy all knowledge.
 No retrieval result directly changes hard constraints, Operator selection, evaluation
 or promotion. Such policy use requires an explicit later compiler rule.
 
+The current query has no observer binding. Therefore `OBSERVER_PROJECTION` relations
+remain retained knowledge but cannot enter shared Atlas concept cards or observer-free
+retrieval. An Atlas whose revision/source digest is older than current canonical
+knowledge is historical and cannot create a new RetrievalContext.
+
 ## 12. Completed-session ingestion
 
 The v0.4 ingestor accepts only a terminal `COMPLETED/ACCEPTED` AADS session. It reads
@@ -240,10 +245,15 @@ exact retained ArtDocument evaluations/reviews/receipts and emits:
 
 - derived source/reference identity for the promoted asset;
 - preserved ArtifactEvaluation;
-- project-local human preference when a human review exists;
+- project-local human preference only when a separate typed assertion is bound to the
+  exact retained human reviewer;
 - ProviderCapabilityEvidence for each completed operator execution;
 - WorkflowExperience bound to the exact session digest and budget use;
 - semantic lineage relation from source version to accepted reference.
+
+Ingested reference roles require explicit human assertion and evidence; the ingestor
+does not silently treat an ArtHumanReview as role-selection evidence. A generic approval
+does not imply any preference dimension.
 
 Ingestion is idempotent and atomic. A stopped, failed, waiting, stale, unpromoted or
 cross-project session creates no knowledge records.
@@ -289,6 +299,9 @@ roles from filenames or image appearance. Negative identity influence remains ex
 - feature vectors with wrong norm/dimension/extractor binding fail;
 - clusters never mix extractor spaces;
 - Atlas snapshot forgery or stale revision fails;
+- a stale Atlas cannot create a new RetrievalContext;
+- observer projections cannot enter observer-free Atlas/retrieval output;
+- generic human approval cannot fabricate typed preference dimensions;
 - retrieval selected IDs/revision/digest/score forgery fails;
 - stopped/unpromoted/cross-project session ingestion is atomic and empty;
 - AADS retrieval binding without the injected knowledge store fails;
@@ -356,8 +369,8 @@ Final detached clean-worktree evidence on 2026-09-12:
 ```text
 npm ci: completed; 0 vulnerabilities
 npm run check: checked_js=55 checked_python=true
-focused Visual Knowledge suite: 15/15 pass
-full repository suite: 210 pass, 0 fail, 1 explicit live-MRMIC skip (211 total)
+focused Visual Knowledge suite: 18/18 pass
+full repository suite: 213 pass, 0 fail, 1 explicit live-MRMIC skip (214 total)
 npm audit: 0 vulnerabilities
 ```
 

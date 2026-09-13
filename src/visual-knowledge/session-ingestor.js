@@ -1,3 +1,8 @@
+import {
+  REFERENCE_ROLES,
+  VISUAL_KNOWLEDGE_DIMENSIONS,
+} from './contracts.js';
+
 function required(value, methods, reason) {
   if (!value || methods.some(method => typeof value[method] !== 'function')) {
     throw new TypeError(reason);
@@ -23,6 +28,52 @@ function operatorOutputs(snapshot) {
 
 function unique(values) {
   return [...new Set(values)];
+}
+
+function exact(value, fields) {
+  return value
+    && typeof value === 'object'
+    && !Array.isArray(value)
+    && Object.keys(value).length === fields.length
+    && Object.keys(value).every(key => fields.includes(key));
+}
+
+function strings(value, allowed = null) {
+  return Array.isArray(value)
+    && value.length > 0
+    && new Set(value).size === value.length
+    && value.every(item => typeof item === 'string'
+      && item.length > 0
+      && (allowed === null || allowed.includes(item)));
+}
+
+function sameActor(left, right) {
+  return humanActor(left)
+    && humanActor(right)
+    && left.kind === right.kind
+    && left.id === right.id;
+}
+
+function validateRoleAssertion(value) {
+  return exact(value, ['role', 'allowedInfluence', 'assertedBy', 'evidenceRefs'])
+    && REFERENCE_ROLES.includes(value.role)
+    && strings(value.allowedInfluence, VISUAL_KNOWLEDGE_DIMENSIONS)
+    && humanActor(value.assertedBy)
+    && strings(value.evidenceRefs);
+}
+
+function validatePreferenceAssertion(value) {
+  return exact(value, [
+    'reviewId', 'observer', 'stance', 'dimensions', 'reason', 'evidenceRefs',
+  ])
+    && typeof value.reviewId === 'string'
+    && value.reviewId.length > 0
+    && humanActor(value.observer)
+    && ['LIKE', 'DISLIKE'].includes(value.stance)
+    && strings(value.dimensions, VISUAL_KNOWLEDGE_DIMENSIONS)
+    && typeof value.reason === 'string'
+    && value.reason.length > 0
+    && strings(value.evidenceRefs);
 }
 
 export class CompletedSessionKnowledgeIngestor {
@@ -56,6 +107,7 @@ export class CompletedSessionKnowledgeIngestor {
     initialSource,
     acceptedSource,
     acceptedReferenceRoles,
+    preferenceAssertion = null,
     rightsActor,
     ingestedAt,
   } = {}) {
@@ -97,6 +149,9 @@ export class CompletedSessionKnowledgeIngestor {
     if (!Array.isArray(acceptedReferenceRoles)) {
       throw new TypeError('knowledge_ingestor_reference_roles_required');
     }
+    if (acceptedReferenceRoles.some(role => !validateRoleAssertion(role))) {
+      throw new Error('knowledge_ingestor_reference_role_assertion_invalid');
+    }
     if (!humanActor(rightsActor)) throw new Error('knowledge_ingestor_rights_actor_required');
     const initialSourceId = `source-identity:${sessionId}:initial`;
     const acceptedSourceId = `source-identity:${sessionId}:accepted`;
@@ -113,6 +168,16 @@ export class CompletedSessionKnowledgeIngestor {
     if (review && (review.versionId !== acceptedVersion.versionId
       || !['APPROVE', 'ACCEPT_WITH_WARNINGS'].includes(review.disposition))) {
       throw new Error('knowledge_ingestor_review_mismatch');
+    }
+    if (preferenceAssertion !== null) {
+      if (!validatePreferenceAssertion(preferenceAssertion)) {
+        throw new Error('knowledge_ingestor_preference_assertion_invalid');
+      }
+      if (!review
+          || preferenceAssertion.reviewId !== review.reviewId
+          || !sameActor(preferenceAssertion.observer, review.reviewer)) {
+        throw new Error('knowledge_ingestor_preference_reviewer_mismatch');
+      }
     }
     const sourceIdentities = [{
       schema: 'eve-atelier-visual-source-identity/v1',
@@ -172,13 +237,8 @@ export class CompletedSessionKnowledgeIngestor {
       role: role.role,
       allowedInfluence: [...role.allowedInfluence],
       scope: { kind: 'PROJECT_LOCAL', projectId: session.projectId, taskId: null },
-      evidenceRefs: unique([
-        ...sourceEvaluation.evidenceRefs,
-        ...(review?.evidenceRefs ?? []),
-      ]),
-      provenance: review
-        ? { kind: 'HUMAN', id: review.reviewer.id }
-        : { kind: 'RUNTIME', id: `aads-session:${sessionId}` },
+      evidenceRefs: unique(role.evidenceRefs),
+      provenance: { kind: 'HUMAN', id: role.assertedBy.id },
       createdAt: ingestedAt,
     }));
     const artifactEvaluations = [{
@@ -197,21 +257,24 @@ export class CompletedSessionKnowledgeIngestor {
       provenance: { kind: 'IMPORT', id: 'eve-atelier:art-document-store' },
       observedAt: ingestedAt,
     }];
-    const preferences = review ? [{
+    const preferences = preferenceAssertion === null ? [] : [{
       schema: 'eve-atelier-preference-event/v1',
       preferenceId: `preference:${review.reviewId}`,
       projectId: session.projectId,
-      observer: review.reviewer,
+      observer: preferenceAssertion.observer,
       subjectReferenceAssetId: acceptedReferenceId,
       comparisonReferenceAssetId: null,
-      stance: 'LIKE',
-      dimensions: ['IDENTITY', 'ALPHA', 'EDGE'],
-      reason: review.reason,
+      stance: preferenceAssertion.stance,
+      dimensions: [...preferenceAssertion.dimensions],
+      reason: preferenceAssertion.reason,
       scope: { kind: 'PROJECT_LOCAL', projectId: session.projectId, taskId: session.sessionId },
       evidenceClass: 'HUMAN_OBSERVED',
-      evidenceRefs: unique(review.evidenceRefs),
+      evidenceRefs: unique([
+        ...review.evidenceRefs,
+        ...preferenceAssertion.evidenceRefs,
+      ]),
       observedAt: ingestedAt,
-    }] : [];
+    }];
     const providerEvidence = operatorOutputs(snapshot).map(({ nodeId, output }) => {
       const receipt = this.#artStore.getExecutionReceipt(output.executionId);
       const provider = receipt.providerReceipt ?? receipt;

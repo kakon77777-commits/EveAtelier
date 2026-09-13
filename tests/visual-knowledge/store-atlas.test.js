@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { DatabaseSync } from 'node:sqlite';
 import { join } from 'node:path';
 import { VisualKnowledgeStore } from '../../src/visual-knowledge/store.js';
+import { human } from '../visual-intelligence/helpers.js';
 import {
   closeKnowledgeWorld,
   setupKnowledgeWorld,
@@ -22,6 +23,16 @@ test('ingests accepted session evidence and builds a derived, deterministic Styl
     ).sessionDigest, context.completed.lastEventDigest);
     assert.equal(context.knowledgeStore.listRecords('PROVIDER_EVIDENCE',
       context.started.session.projectId).length, 3);
+    const preference = context.knowledgeStore.getRecord(
+      'PREFERENCE_EVENT', context.ingested.preferenceIds[0],
+    );
+    assert.deepEqual(preference.dimensions, ['ALPHA', 'EDGE']);
+    assert.equal(preference.dimensions.includes('IDENTITY'), false);
+    const role = context.knowledgeStore.getRecord(
+      'REFERENCE_ROLE', `reference-role:${context.started.session.sessionId}:1`,
+    );
+    assert.equal(role.provenance.id, 'human:v04-reference-curator');
+    assert.deepEqual(role.evidenceRefs, ['evidence:v04:reference-role:identity']);
     const revisionBeforeReplay = context.knowledgeStore.getProjectRevision(
       context.started.session.projectId,
     );
@@ -49,6 +60,17 @@ test('ingests accepted session evidence and builds a derived, deterministic Styl
     ].sort());
     assert.equal(atlas.favorites[0].referenceAssetId, context.ingested.acceptedReferenceId);
     assert.equal(atlas.favorites[0].score, 1);
+    assert.equal(atlas.schema, 'eve-atelier-style-atlas-snapshot/v2');
+    const acceptedCard = atlas.referenceCards.find(item => (
+      item.referenceAssetId === context.ingested.acceptedReferenceId
+    ));
+    assert.equal(acceptedCard.roleBindings.length, 4);
+    assert.deepEqual(acceptedCard.roleBindings[0], {
+      roleBindingId: `reference-role:${context.started.session.sessionId}:3`,
+      role: 'COLOR_REFERENCE',
+      allowedInfluence: ['COLOR', 'PALETTE_COMPATIBILITY'],
+      scope: { kind: 'PROJECT_LOCAL', projectId: context.started.session.projectId, taskId: null },
+    });
     assert.ok(atlas.referenceCards.find(item => (
       item.referenceAssetId === context.ingested.acceptedReferenceId
     )).conceptIds.includes(context.concept.conceptId));
@@ -137,6 +159,93 @@ test('retrieval retains evidence types and rejects Atlas or selection forgery', 
     stale.atlasSnapshotId = 'style-atlas:v04:stale-copy';
     assert.throws(() => context.knowledgeStore.recordAtlasSnapshot(stale),
       /style_atlas_source_stale/);
+    assert.throws(() => context.atlas.buildAndRecordRetrieval({
+      atlasSnapshotId: context.atlasSnapshot.atlasSnapshotId,
+      retrievalContextId: 'retrieval-context:v04:stale-atlas',
+      query: context.retrieval.query,
+      createdAt: '2026-09-12T03:03:00Z',
+    }), /visual_retrieval_atlas_stale/);
+    assert.throws(() => context.knowledgeStore.getRetrievalContext(
+      'retrieval-context:v04:stale-atlas',
+    ), /visual_retrieval_context_not_found/);
+  } finally {
+    closeKnowledgeWorld(context);
+  }
+});
+
+test('observer projections stay out of shared Atlas cards and observer-free retrieval', async () => {
+  const context = await setupKnowledgeWorld();
+  try {
+    const concept = context.knowledgeStore.registerVisualConcept({
+      schema: 'eve-atelier-visual-concept/v1',
+      conceptId: 'concept:v04:observer-only',
+      projectId: context.started.session.projectId,
+      conceptKey: 'visual.concept.observer-only',
+      version: '1.0.0',
+      label: 'Observer-only contour reading',
+      description: 'One observer projection, not a shared-domain visual fact.',
+      domain: 'observer-study',
+      initialStatus: 'CANDIDATE',
+      alternatives: [],
+      evidenceRefs: ['evidence:v04:observer-only'],
+      evidenceClass: 'UNVERIFIED',
+      provenance: { kind: 'AI', id: 'ai:observer-study' },
+      createdAt: '2026-09-12T03:02:00Z',
+    });
+    context.knowledgeStore.appendConceptStatusEvent({
+      schema: 'eve-atelier-visual-concept-status-event/v1',
+      statusEventId: 'concept-status:v04:observer-only:provisional',
+      conceptId: concept.conceptId,
+      projectId: concept.projectId,
+      fromStatus: 'CANDIDATE',
+      toStatus: 'PROVISIONAL',
+      evidenceRefs: ['evidence:v04:observer-only:human-check'],
+      actor: human,
+      occurredAt: '2026-09-12T03:03:00Z',
+    });
+    context.knowledgeStore.appendConceptStatusEvent({
+      schema: 'eve-atelier-visual-concept-status-event/v1',
+      statusEventId: 'concept-status:v04:observer-only:active',
+      conceptId: concept.conceptId,
+      projectId: concept.projectId,
+      fromStatus: 'PROVISIONAL',
+      toStatus: 'ACTIVE',
+      evidenceRefs: ['evidence:v04:observer-only:human-activation'],
+      actor: human,
+      occurredAt: '2026-09-12T03:04:00Z',
+    });
+    const relation = context.knowledgeStore.registerSemanticRelation({
+      schema: 'eve-atelier-semantic-relation/v1',
+      relationId: 'semantic-relation:v04:observer-only',
+      projectId: concept.projectId,
+      layer: 'OBSERVER_PROJECTION',
+      subject: { kind: 'REFERENCE_ASSET', id: context.ingested.acceptedReferenceId },
+      predicate: 'APPEARS_AS',
+      object: { kind: 'VISUAL_CONCEPT', id: concept.conceptId },
+      confidence: 0.8,
+      observerRef: { kind: 'HUMAN', id: 'human:v04-observer' },
+      evidenceClass: 'HUMAN_OBSERVED',
+      evidenceRefs: ['evidence:v04:observer-projection'],
+      provenance: { kind: 'HUMAN', id: 'human:v04-observer' },
+      createdAt: '2026-09-12T03:05:00Z',
+    });
+    const atlas = context.atlas.buildAndRecord({
+      projectId: concept.projectId,
+      atlasSnapshotId: 'style-atlas:v04:observer-filtered',
+      clusterThreshold: 0.75,
+      createdAt: '2026-09-12T03:06:00Z',
+    });
+    const card = atlas.referenceCards.find(item => (
+      item.referenceAssetId === context.ingested.acceptedReferenceId
+    ));
+    assert.equal(card.conceptIds.includes(concept.conceptId), false);
+    const retrieval = context.atlas.buildAndRecordRetrieval({
+      atlasSnapshotId: atlas.atlasSnapshotId,
+      retrievalContextId: 'retrieval-context:v04:observer-filtered',
+      query: context.retrieval.query,
+      createdAt: '2026-09-12T03:07:00Z',
+    });
+    assert.equal(retrieval.selected.semanticRelationIds.includes(relation.relationId), false);
   } finally {
     closeKnowledgeWorld(context);
   }

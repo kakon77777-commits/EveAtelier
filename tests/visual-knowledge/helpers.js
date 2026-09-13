@@ -51,16 +51,32 @@ export async function setupKnowledgeWorld() {
     acceptedReferenceRoles: [{
       role: 'IDENTITY_REFERENCE',
       allowedInfluence: ['IDENTITY', 'CHARACTER_IDENTITY', 'STRUCTURE'],
+      assertedBy: { kind: 'HUMAN', id: 'human:v04-reference-curator' },
+      evidenceRefs: ['evidence:v04:reference-role:identity'],
     }, {
       role: 'LINE_REFERENCE',
       allowedInfluence: ['SURFACE_RENDERING', 'STYLE'],
+      assertedBy: { kind: 'HUMAN', id: 'human:v04-reference-curator' },
+      evidenceRefs: ['evidence:v04:reference-role:line'],
     }, {
       role: 'COLOR_REFERENCE',
       allowedInfluence: ['COLOR', 'PALETTE_COMPATIBILITY'],
+      assertedBy: { kind: 'HUMAN', id: 'human:v04-reference-curator' },
+      evidenceRefs: ['evidence:v04:reference-role:color'],
     }, {
       role: 'LIGHTING_REFERENCE',
       allowedInfluence: ['LIGHTING'],
+      assertedBy: { kind: 'HUMAN', id: 'human:v04-reference-curator' },
+      evidenceRefs: ['evidence:v04:reference-role:lighting'],
     }],
+    preferenceAssertion: {
+      reviewId: completed.outputs.promote.reviewId,
+      observer: human,
+      stance: 'LIKE',
+      dimensions: ['ALPHA', 'EDGE'],
+      reason: 'Preferred for this synthetic project after deterministic alpha and edge review.',
+      evidenceRefs: ['evidence:v04:typed-human-preference'],
+    },
     rightsActor: human,
     ingestedAt: '2026-09-12T02:00:00Z',
   };

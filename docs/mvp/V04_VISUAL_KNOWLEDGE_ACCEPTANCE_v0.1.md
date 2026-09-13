@@ -98,7 +98,9 @@ hard constraint; both Controller and VisualIntelligenceStore reject non-local po
 ## Reference roles
 
 The store supports style core, identity, face, proportion, pose, costume, color, line,
-lighting, composition and multiple negative roles.
+lighting, composition and multiple negative roles. Completed-session ingestion accepts
+only explicit human role assertions carrying their own evidence; it never attributes
+caller-supplied role masks to the document reviewer implicitly.
 
 Every binding has an influence-dimension allowlist. Style, line, color, lighting,
 proportion, pose and composition roles cannot influence identity dimensions. A
@@ -123,7 +125,9 @@ It resolves retained role IDs; it does not infer roles from filenames or pixels.
   `CANDIDATE -> PROVISIONAL -> ACTIVE -> DEPRECATED`.
 - Style observations preserve evaluator and model/Provider conditioning metadata.
 - Preference events require a human observer and `PROJECT_LOCAL` scope; universal or
-  objective claims are rejected.
+  objective claims are rejected. A generic approving ArtHumanReview creates no typed
+  PreferenceEvent. Ingestion requires a separate assertion bound to the exact retained
+  reviewer, with explicit stance, dimensions, reason and evidence.
 - Artifact evaluations must byte-semantically preserve the original ArtDocument
   version, asset, verdict, evaluator, measurements and evidence references.
 - Provider evidence is bound to an exact retained Workbench execution and project.
@@ -146,10 +150,10 @@ fragment behind.
 
 ## Style Atlas closure
 
-The Atlas deterministically rebuilds:
+The v2 Atlas deterministically rebuilds:
 
 - four reference cards in the primary fixture, including a private control;
-- all explicit role masks;
+- all explicit role bindings, including influence masks and project/task scope;
 - active concepts linked by semantic relation;
 - accepted/rejected evaluation summaries;
 - human project favorite score;
@@ -161,7 +165,9 @@ extractor observation remains a separate singleton cluster and never contaminate
 first space.
 
 Recorded Atlas content is independently rebuilt inside the store. Altering a card,
-score, cluster, source digest or knowledge revision is rejected.
+role binding, score, cluster, source digest or knowledge revision is rejected.
+Observer-projection relations remain in SEDB history but are excluded from shared Atlas
+concept cards because the current Atlas/retrieval query has no observer condition.
 
 ## Retrieval closure
 
@@ -186,7 +192,8 @@ The retained background-removal query returns exact IDs for:
 - semantic relations.
 
 Changing a selected ID/score/reason, Atlas digest or knowledge revision is rejected by
-an independent deterministic rebuild.
+an independent deterministic rebuild. A previously valid Atlas becomes historical as
+soon as canonical knowledge advances and cannot mint a new RetrievalContext.
 
 ## AADS v2 integration
 
@@ -218,10 +225,10 @@ npm run check
   checked_js=55 checked_python=true
 
 node --test tests/visual-knowledge/*.test.js
-  15 tests, 15 pass, 0 fail
+  18 tests, 18 pass, 0 fail
 
 npm test
-  211 tests, 210 pass, 0 fail, 1 explicit opt-in live-MRMIC skip
+  214 tests, 213 pass, 0 fail, 1 explicit opt-in live-MRMIC skip
 
 npm audit --json
   total vulnerabilities = 0
@@ -230,12 +237,23 @@ npm audit --json
 These counts were reproduced from a detached clean worktree after `npm ci`. They
 accept the committed v0.4 feature candidate only; they do not claim main integration.
 
+## Promotion-review remediation
+
+On 2026-09-13 the single governing Twin challenged the preceding candidate on three
+concrete evidence-fidelity paths: stale-Atlas retrieval creation, observer-only
+relations entering observer-free discovery, and implicit review-to-preference dimension
+fabrication. The repaired successor adds falsifying controls for all three. It also
+preserves complete role influence/scope bindings in Style Atlas v2 and requires explicit
+human provenance for ingested reference roles. Fresh independent review remains a
+separate prerequisite for main integration.
+
 ## AI participation
 
-This milestone was implemented and reviewed inline by the primary Codex task. Per the
-user's continuing instruction, GLM and MACR were not called. No child AI or external
-worker authored code, saw the Project Context Home, validated the result or gained
-repository authority.
+The initial milestone was implemented and reviewed inline by the primary Codex task.
+For the 2026-09-13 promotion gate, one governing Twin performed read-only independent
+validation and raised the three bounded challenges recorded above. It authored no code
+and had no merge, publication or deployment authority. GLM, MACR and external workers
+were not called and did not receive Project Context Home data.
 
 ## Non-claims
 

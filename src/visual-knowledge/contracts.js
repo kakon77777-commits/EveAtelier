@@ -638,7 +638,9 @@ export function validateAtlasSnapshot(value) {
     'clusterThreshold', 'referenceCards', 'clusters', 'favorites',
     'negativeReferenceAssetIds', 'createdAt',
   ])) return result('style_atlas_snapshot_invalid');
-  if (value.schema !== 'eve-atelier-style-atlas-snapshot/v1'
+  const v2 = value?.schema === 'eve-atelier-style-atlas-snapshot/v2';
+  if (!['eve-atelier-style-atlas-snapshot/v1', 'eve-atelier-style-atlas-snapshot/v2']
+    .includes(value.schema)
       || !string(value.atlasSnapshotId)
       || !string(value.projectId)
       || !integer(value.knowledgeRevision, { min: 1 })
@@ -652,10 +654,11 @@ export function validateAtlasSnapshot(value) {
       || !safe(value)) return result('style_atlas_snapshot_invalid');
   const cards = new Set();
   for (const card of value.referenceCards) {
-    if (!exact(card, [
+    const cardFields = [
       'referenceAssetId', 'assetRef', 'rightsClass', 'labels', 'roles', 'conceptIds',
       'acceptedEvaluationIds', 'rejectedEvaluationIds', 'preferenceScore',
-    ])
+    ];
+    if (!exact(card, v2 ? [...cardFields, 'roleBindings'] : cardFields)
         || !string(card.referenceAssetId)
         || cards.has(card.referenceAssetId)
         || !validateAssetRef(card.assetRef).ok
@@ -666,6 +669,27 @@ export function validateAtlasSnapshot(value) {
         || !strings(card.acceptedEvaluationIds, { empty: true })
         || !strings(card.rejectedEvaluationIds, { empty: true })
         || !Number.isFinite(card.preferenceScore)) return result('style_atlas_reference_card_invalid');
+    if (v2) {
+      if (!isDenseJsonArray(card.roleBindings)) {
+        return result('style_atlas_reference_role_bindings_invalid');
+      }
+      const bindingIds = new Set();
+      for (const binding of card.roleBindings) {
+        if (!exact(binding, ['roleBindingId', 'role', 'allowedInfluence', 'scope'])
+            || !string(binding.roleBindingId)
+            || bindingIds.has(binding.roleBindingId)
+            || !REFERENCE_ROLES.includes(binding.role)
+            || !strings(binding.allowedInfluence, { allowed: VISUAL_KNOWLEDGE_DIMENSIONS })
+            || !scope(binding.scope, value.projectId)) {
+          return result('style_atlas_reference_role_binding_invalid');
+        }
+        bindingIds.add(binding.roleBindingId);
+      }
+      const projectedRoles = [...new Set(card.roleBindings.map(item => item.role))].sort();
+      if (!sameKnowledgeValue(card.roles, projectedRoles)) {
+        return result('style_atlas_reference_role_projection_mismatch');
+      }
+    }
     cards.add(card.referenceAssetId);
   }
   for (const cluster of value.clusters) {

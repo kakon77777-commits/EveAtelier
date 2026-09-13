@@ -147,11 +147,17 @@ export function buildAtlasSnapshotFromRecords({
   const roles = new Map();
   for (const role of records.referenceRoles) {
     if (!roles.has(role.referenceAssetId)) roles.set(role.referenceAssetId, []);
-    roles.get(role.referenceAssetId).push(role.role);
+    roles.get(role.referenceAssetId).push({
+      roleBindingId: role.roleBindingId,
+      role: role.role,
+      allowedInfluence: [...role.allowedInfluence],
+      scope: cloneKnowledgeValue(role.scope),
+    });
   }
   const status = conceptStatuses(records);
   const concepts = new Map();
   for (const relation of records.semanticRelations) {
+    if (relation.layer === 'OBSERVER_PROJECTION') continue;
     let referenceId;
     let conceptId;
     if (relation.subject.kind === 'REFERENCE_ASSET'
@@ -179,7 +185,11 @@ export function buildAtlasSnapshotFromRecords({
       assetRef: cloneKnowledgeValue(reference.assetRef),
       rightsClass: sources.get(reference.sourceIdentityId)?.rightsClass ?? 'UNKNOWN',
       labels: [...reference.labels].sort(),
-      roles: [...new Set(roles.get(reference.referenceAssetId) ?? [])].sort(),
+      roles: [...new Set((roles.get(reference.referenceAssetId) ?? [])
+        .map(item => item.role))].sort(),
+      roleBindings: [...(roles.get(reference.referenceAssetId) ?? [])]
+        .sort((left, right) => left.role.localeCompare(right.role)
+          || left.roleBindingId.localeCompare(right.roleBindingId)),
       conceptIds: [...new Set(concepts.get(reference.referenceAssetId) ?? [])].sort(),
       acceptedEvaluationIds: evaluations.filter(item => (
         ['ACCEPT', 'ACCEPT_WITH_WARNINGS'].includes(item.verdict)
@@ -200,11 +210,11 @@ export function buildAtlasSnapshotFromRecords({
     .sort((left, right) => right.score - left.score
       || left.referenceAssetId.localeCompare(right.referenceAssetId));
   const negativeReferenceAssetIds = [...roles.entries()]
-    .filter(([, values]) => values.includes('NEGATIVE_REFERENCE'))
+    .filter(([, values]) => values.some(item => item.role === 'NEGATIVE_REFERENCE'))
     .map(([referenceAssetId]) => referenceAssetId)
     .sort();
   const value = {
-    schema: 'eve-atelier-style-atlas-snapshot/v1',
+    schema: 'eve-atelier-style-atlas-snapshot/v2',
     atlasSnapshotId,
     projectId,
     knowledgeRevision,
@@ -373,6 +383,7 @@ export function buildRetrievalContextFromAtlas({
     ));
   }
   for (const relation of records.semanticRelations) {
+    if (relation.layer === 'OBSERVER_PROJECTION') continue;
     if (selectedReferences.has(relation.subject.id)
         || selectedReferences.has(relation.object.id)) candidates.push(candidate(
       'SEMANTIC_RELATION', relation.relationId,

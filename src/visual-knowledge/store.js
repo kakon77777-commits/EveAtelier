@@ -796,6 +796,12 @@ export class VisualKnowledgeStore {
           || value.atlasSourceDigest !== atlas.sourceDigest) {
         throw new Error('visual_retrieval_atlas_mismatch');
       }
+      const currentRevision = this.getProjectRevision(value.projectId);
+      const currentSourceDigest = digest(records);
+      if (atlas.knowledgeRevision !== currentRevision
+          || atlas.sourceDigest !== currentSourceDigest) {
+        throw new Error('visual_retrieval_atlas_stale');
+      }
       const expected = buildRetrievalContextFromAtlas({
         atlas,
         records,
