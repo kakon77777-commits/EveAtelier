@@ -100,6 +100,18 @@ function publicSession(snapshot) {
   };
 }
 
+export function sortHumanHistory(values) {
+  if (!Array.isArray(values)) throw new TypeError('human_surface_history_invalid');
+  return [...values].sort((left, right) => {
+    const leftTime = Date.parse(left?.at);
+    const rightTime = Date.parse(right?.at);
+    if (!Number.isFinite(leftTime) || !Number.isFinite(rightTime)) {
+      throw new Error('human_surface_history_time_invalid');
+    }
+    return leftTime - rightTime || left.historyId.localeCompare(right.historyId);
+  });
+}
+
 export class HumanWorkbenchSurface {
   #artStore;
   #assetStore;
@@ -162,6 +174,13 @@ export class HumanWorkbenchSurface {
     };
   }
 
+  #assertWorkspaceAccess({ projectId, documentId }) {
+    if (projectId !== this.#defaultWorkspace.projectId
+        || documentId !== this.#defaultWorkspace.documentId) {
+      throw new Error('human_surface_workspace_forbidden');
+    }
+  }
+
   #asset(asset, projectId, documentId) {
     this.#assetStore.verifyAsset(asset);
     return publicAsset(asset, projectId, documentId);
@@ -170,6 +189,7 @@ export class HumanWorkbenchSurface {
   getWorkspace(raw) {
     const key = normalizeSurfaceValue(raw, 'human_surface_workspace_key_invalid');
     assertValid(validateWorkspaceKey(key));
+    this.#assertWorkspaceAccess(key);
     const art = this.#artStore.getDocumentSnapshot(key.documentId);
     if (art.document.projectId !== key.projectId) throw new Error('human_surface_project_mismatch');
     const versions = this.#artStore.listVersions(key.documentId);
@@ -228,7 +248,7 @@ export class HumanWorkbenchSurface {
         evaluationId: evaluationFromOutput(snapshot),
       }));
 
-    const history = [
+    const history = sortHumanHistory([
       ...currentEvents.map(event => ({
         historyId: `art:${event.eventId}`,
         kind: 'ART_CURRENT',
@@ -246,8 +266,7 @@ export class HumanWorkbenchSurface {
           actor: publicValue(event.actor),
           at: event.occurredAt,
         }))),
-    ].sort((left, right) => left.at.localeCompare(right.at)
-      || left.historyId.localeCompare(right.historyId));
+    ]);
 
     return {
       schema: 'eve-atelier-human-workspace/v1',
@@ -277,6 +296,7 @@ export class HumanWorkbenchSurface {
   async submitIntent(raw) {
     const command = normalizeSurfaceValue(raw, 'human_surface_intent_command_invalid');
     assertValid(validateSurfaceIntentCommand(command));
+    this.#assertWorkspaceAccess(command);
     const art = this.#artStore.getDocumentSnapshot(command.documentId);
     if (art.document.projectId !== command.projectId) throw new Error('human_surface_project_mismatch');
     for (const id of command.retrievalContextRefs) {
@@ -351,7 +371,12 @@ export class HumanWorkbenchSurface {
   async submitReview(raw) {
     const command = normalizeSurfaceValue(raw, 'human_surface_review_command_invalid');
     assertValid(validateSurfaceReviewCommand(command));
+    this.#assertWorkspaceAccess(command);
     const before = this.#visualStore.getSessionSnapshot(command.sessionId);
+    if (before.session.projectId !== command.projectId
+        || before.session.documentId !== command.documentId) {
+      throw new Error('human_surface_review_session_scope_mismatch');
+    }
     if (before.status !== 'WAITING_HUMAN') throw new Error('human_surface_review_gate_not_current');
     this.#controller.submitHumanDecision({
       sessionId: command.sessionId,
@@ -377,6 +402,7 @@ export class HumanWorkbenchSurface {
         || !['projectId', 'documentId', 'assetId'].every(key => (
           typeof request[key] === 'string' && request[key].length > 0
         ))) throw new Error('human_surface_asset_request_invalid');
+    this.#assertWorkspaceAccess(request);
     const art = this.#artStore.getDocumentSnapshot(request.documentId);
     if (art.document.projectId !== request.projectId) throw new Error('human_surface_project_mismatch');
     const versionOwned = this.#artStore.listVersions(request.documentId)

@@ -4,6 +4,10 @@ import { mkdtemp } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { createDemoWorkbenchRuntime } from '../../src/product-surface/demo-runtime.js';
+import {
+  HumanWorkbenchSurface,
+  sortHumanHistory,
+} from '../../src/product-surface/service.js';
 
 async function demo() {
   const root = await mkdtemp(join(tmpdir(), 'eve-v05-service-'));
@@ -60,6 +64,8 @@ test('intent to candidate to human approval flows through AADS before promotion'
     const candidateId = started.workspace.candidateCompare[0].versionId;
 
     const reviewed = await runtime.surface.submitReview({
+      projectId: runtime.projectId,
+      documentId: runtime.documentId,
       sessionId: started.session.session.sessionId,
       decision: 'APPROVE',
       reason: 'Alpha and edge evidence are acceptable for this synthetic demo.',
@@ -80,6 +86,8 @@ test('human rejection remains durable and never changes current', async () => {
   try {
     const started = await runtime.surface.submitIntent(backgroundCommand(runtime));
     const rejected = await runtime.surface.submitReview({
+      projectId: runtime.projectId,
+      documentId: runtime.documentId,
       sessionId: started.session.session.sessionId,
       decision: 'REJECT',
       reason: 'Keep the original for this demo.',
@@ -101,6 +109,8 @@ test('surface commands reject implementation authority and cross-scope review', 
       providerId: 'client-must-not-select-provider',
     }), /human_surface_intent_command_invalid/);
     assert.rejects(() => runtime.surface.submitReview({
+      projectId: runtime.projectId,
+      documentId: runtime.documentId,
       sessionId: 'session:other-project',
       decision: 'APPROVE',
       reason: 'Cross-scope attempt.',
@@ -108,4 +118,53 @@ test('surface commands reject implementation authority and cross-scope review', 
   } finally {
     runtime.close();
   }
+});
+
+test('a surface cannot review an existing session outside its authorized workspace', async () => {
+  const runtime = await demo();
+  try {
+    const started = await runtime.surface.submitIntent(backgroundCommand(runtime));
+    const rogue = new HumanWorkbenchSurface({
+      artDocumentStore: runtime.artDocumentStore,
+      assetStore: runtime.assetStore,
+      visualIntelligenceStore: runtime.visualIntelligenceStore,
+      knowledgeStore: runtime.knowledgeStore,
+      controller: runtime.controller,
+      sessionPolicy: () => ({}),
+      humanActor: { kind: 'HUMAN', id: 'human:other-workspace' },
+      now: () => '2026-09-14T01:00:00Z',
+      idFactory: kind => `${kind}:other-workspace`,
+      defaultWorkspace: { projectId: 'project:other', documentId: 'document:other' },
+    });
+    await assert.rejects(() => rogue.submitReview({
+      projectId: 'project:other',
+      documentId: 'document:other',
+      sessionId: started.session.session.sessionId,
+      decision: 'APPROVE',
+      reason: 'Must not cross the authorized workspace boundary.',
+    }), /human_surface_review_session_scope_mismatch/);
+    assert.equal(runtime.visualIntelligenceStore.getSessionSnapshot(
+      started.session.session.sessionId,
+    ).status, 'WAITING_HUMAN');
+    assert.equal(runtime.artDocumentStore.getDocumentSnapshot(
+      runtime.documentId,
+    ).currentVersion.versionId, 'version:v05:source');
+    assert.deepEqual(runtime.artDocumentStore.listHumanReviews(runtime.documentId), []);
+  } finally {
+    runtime.close();
+  }
+});
+
+test('history ordering uses absolute time across canonical RFC3339 offsets', () => {
+  const earlier = {
+    historyId: 'art:earlier',
+    at: '2026-09-14T10:00:00+09:00',
+  };
+  const later = {
+    historyId: 'aads:later',
+    at: '2026-09-14T02:00:00Z',
+  };
+  assert.deepEqual(sortHumanHistory([later, earlier]).map(item => item.historyId), [
+    'art:earlier', 'aads:later',
+  ]);
 });

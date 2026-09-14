@@ -47,6 +47,11 @@ canonical stores, Controller, server-side policy, one bound human actor, clock a
 factory. Browser commands cannot supply actor identity, Provider, model, workflow,
 budget, authority or promotion data.
 
+Each Surface instance owns one explicit authorized workspace. Intent, workspace reads,
+asset delivery and review commands must match it. A review additionally carries exact
+project/document identity and must match the retained session before any human decision
+or promotion path is invoked.
+
 The surface adds read-only list projections to ArtDocumentStore and
 VisualIntelligenceStore. Every write still travels through existing runtime methods:
 
@@ -75,6 +80,7 @@ or project reference, re-verifies AssetStore bytes and never accepts a filesyste
 - exact allowlist for `index.html`, `app.js` and `styles.css`;
 - 64 KiB default JSON limit and required JSON content type;
 - restrictive same-origin CSP and no-store project asset responses;
+- exact listener Host and optional Origin validation before request-body or Surface work;
 - public-safe errors without stacks or local paths;
 - unknown routes, path traversal and out-of-scope assets return no file content.
 
@@ -129,25 +135,37 @@ npm run check
   checked_js=61 checked_python=true
 
 node --test tests/product-surface/*.test.js
-  8 tests, 8 pass, 0 fail
+  11 tests, 11 pass, 0 fail
 
 npm test
-  222 tests, 221 pass, 0 fail, 1 explicit opt-in live-MRMIC skip
+  225 tests, 224 pass, 0 fail, 1 explicit opt-in live-MRMIC skip
 
 npm audit --json
   total vulnerabilities = 0
 ```
 
 The focused suite covers service projection, approval, rejection, command authority,
-cross-scope failure, scoped bytes, loopback/body/content-type/static-path boundaries and
-the six-surface DOM contract.
+existing-session cross-workspace failure with zero mutation, mixed-offset chronological
+history, scoped bytes, forged Host/Origin zero-session controls, loopback/body/content-
+type/static-path boundaries and the six-surface DOM contract.
+
+## Promotion-review remediation
+
+On 2026-09-14 the single governing Twin challenged the first candidate on three exact
+paths: cross-workspace session approval, lexical rather than absolute-time history
+ordering, and Host/Origin requests reaching command execution. Each was reproduced in a
+temporary synthetic runtime before repair. The successor binds all commands to one
+authorized workspace, orders history by parsed instant, and rejects non-local authority
+headers before reading a command body. Fresh independent re-review remains required
+before main integration.
 
 ## AI participation
 
-The v0.5 implementation and validation were performed by the primary Codex task. The
-single governing Twin used earlier in this continuation was confined to v0.4 promotion
-review and authored none of the v0.5 files. GLM, MACR and external workers were not
-called and received no project context.
+The v0.5 implementation and repair were performed by the primary Codex task. One
+governing Twin performed read-only promotion review and raised the bounded challenges
+recorded above. It authored no code and had no merge, publication or deployment
+authority. GLM, MACR and external workers were not called and received no project
+context.
 
 ## Non-claims
 

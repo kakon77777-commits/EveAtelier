@@ -56,8 +56,28 @@ function publicReason(error) {
 }
 
 function statusFor(reason) {
-  if (/not_found|not_in_scope|project_mismatch/.test(reason)) return 404;
+  if (/not_found|not_in_scope|project_mismatch|workspace_forbidden/.test(reason)) return 404;
   return 400;
+}
+
+function requestError(reason, status) {
+  const error = new Error(reason);
+  error.status = status;
+  return error;
+}
+
+function assertLocalAuthority(request, server, host) {
+  const address = server.address();
+  if (!address || typeof address === 'string') {
+    throw requestError('human_surface_server_address_invalid', 503);
+  }
+  const authority = `${host === '::1' ? '[::1]' : host}:${address.port}`.toLowerCase();
+  const requestHost = String(request.headers.host ?? '').toLowerCase();
+  if (requestHost !== authority) throw requestError('human_surface_host_forbidden', 421);
+  const origin = request.headers.origin;
+  if (origin !== undefined && String(origin).toLowerCase() !== `http://${authority}`) {
+    throw requestError('human_surface_origin_forbidden', 403);
+  }
 }
 
 function readJson(request, maxBodyBytes) {
@@ -110,6 +130,7 @@ export function createHumanWorkbenchHttpServer({
 
   const server = createServer(async (request, response) => {
     try {
+      assertLocalAuthority(request, server, host);
       const url = new URL(request.url ?? '/', `http://${host}`);
       if (request.method === 'GET' && staticFiles[url.pathname]) {
         const [file, contentType] = staticFiles[url.pathname];

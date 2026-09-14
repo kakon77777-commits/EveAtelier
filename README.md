@@ -115,7 +115,7 @@ The initial pre-MVP engineering sequence has been executed:
 - Dynamic Operator Registry Kernel: data-loaded axes, locks, families and compiler rules; immutable version digests; REPLACE-safe append-only SQLite evidence; human-gated activation; provider-neutral semantic plans; revision-guarded exact provider receipts; store-issued runtime evidence tokens; PREPARED/COMPLETED/FAILED experience events; and a real registry-bound Pillow resize green control.
 - VUSD counterfactual evidence kernel: immutable pre-generation predictions and later observations; exact pack/axis/lock/minimal-closure validation; declared non-vacuous closure participation; explicit collateral deltas; derived residual comparison; and candidate-only operator proposals that cannot activate or promote themselves.
 - Same-Series Calibration Evidence Kernel: immutable versioned dimension profiles; explicit legacy-v1 adaptation; data-defined additional dimensions; exact same-character and cross-character observations; repeated human preference rounds with retained disagreement; metric-limitation findings; terminal `PROPOSED` threshold candidates; and non-authorizing evidence summaries.
-- v0.5 feature-candidate validation snapshot: 222 tests, 221 pass, 0 fail, 1 explicit
+- v0.5 feature-candidate validation snapshot: 225 tests, 224 pass, 0 fail, 1 explicit
   opt-in live-MRMIC skip; `npm audit` reports zero known vulnerabilities.
 - Private source/reference and generated candidate image bytes remain Git-ignored and are not distributed by this repository.
 

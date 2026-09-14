@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { mkdtemp } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { request as httpRequest } from 'node:http';
 import { createDemoWorkbenchRuntime } from '../../src/product-surface/demo-runtime.js';
 import { createHumanWorkbenchHttpServer } from '../../src/product-surface/http-server.js';
 
@@ -18,6 +19,21 @@ async function json(response) {
   const value = await response.json();
   assert.equal(response.headers.get('content-type').startsWith('application/json'), true);
   return value;
+}
+
+function rawJsonRequest(url, { method = 'GET', headers = {}, body = '' } = {}) {
+  return new Promise((resolve, reject) => {
+    const request = httpRequest(url, { method, headers }, response => {
+      const chunks = [];
+      response.on('data', chunk => chunks.push(chunk));
+      response.on('end', () => resolve({
+        status: response.statusCode,
+        body: JSON.parse(Buffer.concat(chunks).toString('utf8')),
+      }));
+    });
+    request.on('error', reject);
+    request.end(body);
+  });
 }
 
 test('serves the local app, scoped workspace, and exact AssetStore bytes', async () => {
@@ -79,12 +95,60 @@ test('HTTP intent and review accept only bounded human commands', async () => {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify({
+        projectId: context.runtime.projectId,
+        documentId: context.runtime.documentId,
         sessionId: started.session.session.sessionId,
         decision: 'APPROVE',
         reason: 'Approved through the bounded HTTP surface.',
       }),
     }));
     assert.equal(reviewed.session.terminalOutcome, 'ACCEPTED');
+  } finally {
+    await context.host.close();
+    context.runtime.close();
+  }
+});
+
+test('forged Host or Origin cannot reach surface commands or create a session', async () => {
+  const context = await setup();
+  try {
+    const command = {
+      projectId: context.runtime.projectId,
+      documentId: context.runtime.documentId,
+      text: '把背景去掉，邊緣不要有白邊。',
+      taskTypeHint: 'UNKNOWN',
+      roleBindingIds: [],
+      preferences: [],
+      hardConstraints: [],
+      overrides: [],
+      retrievalContextRefs: [],
+    };
+    const forgedHost = await rawJsonRequest(`${context.baseUrl}/api/intents`, {
+      method: 'POST',
+      headers: {
+        host: 'evil.example',
+        'content-type': 'application/json',
+        'content-length': Buffer.byteLength(JSON.stringify(command)),
+      },
+      body: JSON.stringify(command),
+    });
+    assert.equal(forgedHost.status, 421);
+    assert.equal(forgedHost.body.error, 'human_surface_host_forbidden');
+
+    const forgedOrigin = await fetch(`${context.baseUrl}/api/intents`, {
+      method: 'POST',
+      headers: {
+        origin: 'https://evil.example',
+        'content-type': 'application/json',
+      },
+      body: JSON.stringify(command),
+    });
+    assert.equal(forgedOrigin.status, 403);
+    assert.equal((await json(forgedOrigin)).error, 'human_surface_origin_forbidden');
+    assert.deepEqual(context.runtime.visualIntelligenceStore.listSessions({
+      projectId: context.runtime.projectId,
+      documentId: context.runtime.documentId,
+    }), []);
   } finally {
     await context.host.close();
     context.runtime.close();

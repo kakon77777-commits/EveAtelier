@@ -203,6 +203,8 @@ byId('review-form').addEventListener('submit', async event => {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify({
+        projectId: state.config.projectId,
+        documentId: state.config.documentId,
         sessionId,
         decision,
         reason: byId('review-reason').value,

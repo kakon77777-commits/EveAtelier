@@ -84,6 +84,8 @@ the browser.
 The browser may send `APPROVE` or `REJECT` plus a reason for a session currently in
 `WAITING_HUMAN`. The server binds the configured human actor, records the canonical
 ArtHumanReview through AADS, and resumes the workflow. It never calls promotion directly.
+The command's project/document and retained session must all equal the Surface's single
+authorized workspace before a human decision is recorded.
 
 ### Asset delivery
 
@@ -111,6 +113,7 @@ alt text and responsive layout. Untrusted content is inserted with text nodes, n
 - exact static-file allowlist;
 - bounded JSON request size;
 - same-origin API;
+- exact listener Host and optional Origin check before body parsing or command dispatch;
 - restrictive Content Security Policy;
 - method and content-type validation;
 - public-safe error reasons without stack or filesystem disclosure;
@@ -130,6 +133,9 @@ alt text and responsive layout. Untrusted content is inserted with text nodes, n
 
 - client-supplied Provider/model/authority fields fail closed;
 - cross-project document/reference/session access fails;
+- an existing foreign-workspace waiting session cannot be reviewed or promoted;
+- mixed-offset canonical instants remain in absolute chronological order;
+- forged Host/Origin POST creates no session;
 - review outside a current human gate fails;
 - caller-supplied actor identity is impossible at the command schema;
 - unknown asset identity and path traversal do not expose files;
@@ -161,8 +167,8 @@ On 2026-09-13 the candidate completed:
 
 ```text
 check: 61 JavaScript files + Python compile
-focused product-surface suite: 8/8 pass
-full repository suite: 221 pass, 0 fail, 1 explicit live-MRMIC skip (222 total)
+focused product-surface suite: 11/11 pass
+full repository suite: 224 pass, 0 fail, 1 explicit live-MRMIC skip (225 total)
 npm audit: 0 vulnerabilities
 real local browser: approve path PASS; reject path PASS; console warnings/errors 0/0
 ```

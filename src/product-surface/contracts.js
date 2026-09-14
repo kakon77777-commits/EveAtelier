@@ -88,7 +88,9 @@ export function validateSurfaceIntentCommand(value) {
 }
 
 export function validateSurfaceReviewCommand(value) {
-  if (!exact(value, ['sessionId', 'decision', 'reason'])
+  if (!exact(value, ['projectId', 'documentId', 'sessionId', 'decision', 'reason'])
+      || !string(value.projectId)
+      || !string(value.documentId)
       || !string(value.sessionId)
       || !['APPROVE', 'REJECT'].includes(value.decision)
       || !string(value.reason)
