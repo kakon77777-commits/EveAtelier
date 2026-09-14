@@ -6,10 +6,10 @@ The project is designed around a simple premise: AI should work with explicit vi
 
 ## Status
 
-**v0.5 Human Product Surface is a local integration candidate over the deployed v0.4
-runtime.** The new loopback browser workbench exposes Intent, Reference Board, Canvas,
-Candidate Compare, History and Approve/Reject without transferring canonical authority
-out of AADS, ArtDocumentStore, SEDB-Visual or AssetStore.
+**v0.5 Human Product Surface is integrated on `main`.** The loopback browser workbench
+exposes Intent, Reference Board, Canvas, Candidate Compare, History and Approve/Reject
+without transferring canonical authority out of AADS, ArtDocumentStore, SEDB-Visual or
+AssetStore.
 
 Current acceptance state:
 
@@ -17,7 +17,7 @@ Current acceptance state:
 - **v0.2 Workbench Core local acceptance: PASS and integrated on `main`**
 - **v0.3 Visual Intelligence local acceptance: PASS and integrated on `main`**
 - **v0.4 Visual Knowledge local acceptance: PASS and integrated on `main`**
-- **v0.5 Human Product Surface local acceptance: PASS on the feature candidate**
+- **v0.5 Human Product Surface local acceptance: PASS and integrated on `main`**
 - **Private local Basic MVP: PASS through human review, promotion, and candidate-specific MRMIC verification**
 - **Strict Real generative visual MVP: PARTIAL**
 
@@ -115,7 +115,7 @@ The initial pre-MVP engineering sequence has been executed:
 - Dynamic Operator Registry Kernel: data-loaded axes, locks, families and compiler rules; immutable version digests; REPLACE-safe append-only SQLite evidence; human-gated activation; provider-neutral semantic plans; revision-guarded exact provider receipts; store-issued runtime evidence tokens; PREPARED/COMPLETED/FAILED experience events; and a real registry-bound Pillow resize green control.
 - VUSD counterfactual evidence kernel: immutable pre-generation predictions and later observations; exact pack/axis/lock/minimal-closure validation; declared non-vacuous closure participation; explicit collateral deltas; derived residual comparison; and candidate-only operator proposals that cannot activate or promote themselves.
 - Same-Series Calibration Evidence Kernel: immutable versioned dimension profiles; explicit legacy-v1 adaptation; data-defined additional dimensions; exact same-character and cross-character observations; repeated human preference rounds with retained disagreement; metric-limitation findings; terminal `PROPOSED` threshold candidates; and non-authorizing evidence summaries.
-- v0.5 feature-candidate validation snapshot: 225 tests, 224 pass, 0 fail, 1 explicit
+- Integrated v0.5 validation snapshot: 225 tests, 224 pass, 0 fail, 1 explicit
   opt-in live-MRMIC skip; `npm audit` reports zero known vulnerabilities.
 - Private source/reference and generated candidate image bytes remain Git-ignored and are not distributed by this repository.
 
@@ -140,13 +140,12 @@ The v0.5 completion contract and evidence are in
 
 ## Next real-MVP gates
 
-1. Review and integrate the exact v0.5 Human Product Surface candidate.
-2. Bind the same product adapter to an explicitly selected persistent project/runtime;
+1. Bind the product adapter to an explicitly selected persistent project/runtime;
    keep the synthetic demo distinct from private or production evidence.
-3. Keep future external AI workers behind Project Context Home; no worker becomes
+2. Keep future external AI workers behind Project Context Home; no worker becomes
    canonical project, evaluation, promotion, merge, release, or deployment authority.
-4. Keep Repair A as the private experimental current version; any further hand-only refinement must branch again and pass the same evaluation/human-review gate.
-5. Replace the private game-research source pack with assets carrying sufficient rights evidence before claiming strict Real MVP PASS or public asset distribution.
+3. Keep Repair A as the private experimental current version; any further hand-only refinement must branch again and pass the same evaluation/human-review gate.
+4. Replace the private game-research source pack with assets carrying sufficient rights evidence before claiming strict Real MVP PASS or public asset distribution.
 
 ## License
 

@@ -2,9 +2,9 @@
 
 Date: 2026-09-13
 
-Status: `IMPLEMENTATION_CANDIDATE / LOCAL_ACCEPTANCE`
+Status: `PROMOTED / INTEGRATED_ON_MAIN / LOCAL_ACCEPTANCE`
 
-Branch: `feature/v0.5-human-product-surface`
+Source branch: `feature/v0.5-human-product-surface`
 
 Base: `main@0da90a8791eb21df07cecb42aae84668a9ffcb31`
 
@@ -156,8 +156,9 @@ paths: cross-workspace session approval, lexical rather than absolute-time histo
 ordering, and Host/Origin requests reaching command execution. Each was reproduced in a
 temporary synthetic runtime before repair. The successor binds all commands to one
 authorized workspace, orders history by parsed instant, and rejects non-local authority
-headers before reading a command body. Fresh independent re-review remains required
-before main integration.
+headers before reading a command body. Fresh independent re-review of exact successor
+`c7644cba9667bda38ff340a5f44eed19fc625c0e` returned `CONCUR` with behavioral,
+structural and discriminative closure and no remaining in-scope blocker.
 
 ## AI participation
 
@@ -169,10 +170,24 @@ context.
 
 ## Non-claims
 
-- v0.5 is not merged, released or hosted by this acceptance record.
+- v0.5 main integration does not claim a packaged release or hosted deployment.
 - Browser evidence uses a synthetic local demo, not the private Character Remaster pack.
 - This is not strict rights-clear Real generative MVP closure.
 - No Electron/Tauri/native installer or production authentication is included.
 - No external generation, vector service, knowledge promotion, seed runtime, brush,
   animation, video, 3D or PSD-equivalent editor is claimed.
 - Advanced layer/mask/Operator/Provider/Style/OFP inspectors remain later product slices.
+
+## Integration supersession
+
+On 2026-09-14 the user continued the previously declared v0.5 review/promotion and main
+integration gate. The governing Twin first returned `CHALLENGE`; the three reproduced
+workspace, chronology and HTTP-authority defects were repaired with RED/green controls.
+Fresh review of exact source commit
+`c7644cba9667bda38ff340a5f44eed19fc625c0e` then returned `CONCUR`.
+
+Local `main` was fast-forwarded from
+`0da90a8791eb21df07cecb42aae84668a9ffcb31` to that exact promoted source commit. The
+206 untracked files from the research intake and backup archive had zero path overlap
+with the 19 integrated paths and were not staged or changed. GitHub publication is
+verified separately after this integration record is committed and pushed.
