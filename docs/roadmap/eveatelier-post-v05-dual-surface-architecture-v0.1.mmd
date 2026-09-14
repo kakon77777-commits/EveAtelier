@@ -1,0 +1,57 @@
+flowchart TB
+  H["Human / AI Intent"] --> S
+  WXI["Wanxiang private art pilot<br/>game originals remain read-only"] --> S
+
+  subgraph Platform["EveAtelier Platform"]
+    direction TB
+    S["EveAtelier Studio<br/>author · decompose · edit · compare · review"]
+    AS["AssetStore<br/>only bytes / CAS authority"]
+    AD["ArtDocumentStore<br/>versions + only current pointer"]
+    DV["ArtDocumentVersion"]
+    CV["MRMIC CanvasStore<br/>separate CanvasRevision"]
+
+    subgraph Kernel["Shared Visual Asset Graph Kernel"]
+      direction LR
+      A["AssetRef / stable byte identity"]
+      G["VisualAssetGraph schema<br/>2D · 2.5D · 3D nodes"]
+      GR["VisualAssetGraphRevision<br/>exact version-bound structure"]
+      O["Typed Operators / Graph Transactions"]
+      P["Provenance / Evidence / Loss Report"]
+      A --> GR
+      G --> GR
+      O --> GR
+      P --> GR
+    end
+
+    R["Composable Visual Runtime<br/>validate recipe · compose · cache · render · compile"]
+    RR["Render / Compile Receipt<br/>evidence only · never current"]
+    AS -->|"verifies"| A
+    AD -->|"owns"| DV
+    DV -->|"contains exact structure"| GR
+    S -->|"candidate graph transaction"| GR
+    GR -->|"versioned graph / recipe"| R
+    R --> RR
+    RR -. "evidence / preview only" .-> S
+    CV -. "projection revision guard<br/>not document current" .-> S
+  end
+
+  R --> D2["2D / 2.5D delivery<br/>PNG · ORA · sprite sheet"]
+  R --> D3["3D delivery<br/>OpenUSD-like authoring · glTF/GLB"]
+  R --> GA["Game adapters"]
+  GA --> WX["Wanxiang research / MOD consumer"]
+  GA --> GM["Future games"]
+  GA --> MOD["MOD / World Compiler adapters"]
+
+  DP["Replaceable providers<br/>Layer decomposition · image edit · Blender · image-to-3D"] -->|"proposal + receipt"| S
+  GSRT["GSRT adapters<br/>Seed Library · Composition · Navigation"] -. "future, separate version namespace" .-> GR
+
+  classDef studio fill:#342c5e,stroke:#b8a8ff,color:#ffffff;
+  classDef kernel fill:#15364a,stroke:#72c8ff,color:#ffffff;
+  classDef runtime fill:#42331d,stroke:#f0c77d,color:#ffffff;
+  classDef consumer fill:#1f4136,stroke:#79d9b0,color:#ffffff;
+  classDef authority fill:#3d2335,stroke:#ff9fc4,color:#ffffff;
+  class S studio;
+  class A,G,GR,O,P kernel;
+  class R,RR runtime;
+  class AS,AD,DV,CV authority;
+  class WXI,WX,GM,MOD,GA,D2,D3 consumer;
